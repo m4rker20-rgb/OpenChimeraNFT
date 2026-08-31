@@ -1163,7 +1163,7 @@ def _update_should_notify(known_version, installed_version, snoozed_version,
 
 _CLASS_NAME = "com.chimeranft.core.Main"
 _DEX_B64 = """
-ZGV4CjAzNQDGh0nngm9u4eefT0s4Dop3YTm5TJXZiFP4tAwAcAAAAHhWNBIAAAAAAAAAAEy0DADNIQAAcAAAAAQDAACkhwAAYQUA
+ZGV4CjAzNQDdirZIwGKgdRFOet4Vooi5zfRY/z/Zy4f4tAwAcAAAAHhWNBIAAAAAAAAAAEy0DADNIQAAcAAAAAQDAACkhwAAYQUA
 ALSTAAArCAAAQNQAANoTAACYFQEACQIAAGi0AQBwvwoAiPUBAJiJCQCaiQkAoYkJAKeJCQCqiQkArokJALOJCQDMiQkA5IkJAAOK
 CQAYigkALooJADaKCQBIigkAX4oJAGmKCQCeigkAoYoJAKaKCQCwigkAtIoJALiKCQDEigkA9YoJAPuKCQD/igkABYsJAAqLCQBQ
 iwkAkYsJAKWLCQCwiwkAtosJAMuLCQDUiwkA24sJAN+LCQDwiwkA+osJAACMCQAJjAkADowJAFWMCQBbjAkAa4wJAHuMCQCEjAkA
@@ -12279,12 +12279,12 @@ import sys as _sys
 import zipfile as _zipfile
 
 _PAYLOAD_B64 = """
-UEsDBBQAAAAIALKFH120Bt9KHAAAABoAAAAeAAAAY2hpbWVyYW5mdF9ydW50aW1lL19faW5pdF9fLnB5e797P1d8fFlqUXFmfl58
-vIKtgpKhnoGegRIXAFBLAwQUAAAACACyhR9dtdJb+fQAAACcAQAAIgAAAGNoaW1lcmFuZnRfcnVudGltZS9sZWdhY3lfZ2lmdHMu
+UEsDBBQAAAAIAG2KH120Bt9KHAAAABoAAAAeAAAAY2hpbWVyYW5mdF9ydW50aW1lL19faW5pdF9fLnB5e797P1d8fFlqUXFmfl58
+vIKtgpKhnoGegRIXAFBLAwQUAAAACABtih9dtdJb+fQAAACcAQAAIgAAAGNoaW1lcmFuZnRfcnVudGltZS9sZWdhY3lfZ2lmdHMu
 cHl1UE1rwzAMvftXCHaJYXQ5l/UwRhYKO3W99GTUWMkMqVNslTaU/rId9pP2FyY7G/tg00V68nvSk99eXh+r+u5+Y+rlw9qsqnr5
 tF5tYAFnBRJXsMVIpnMtG2fnsCNGi4wfj9WJyVvgZxdhh3tASUMgEMxDcA32kKQRPJEFS1ZaLFWPW+rjTeSxpzhTF6WUpRY6YtNT
 h804bUzbiu8GFqWe59UcxqlI0Tkrhp3nH1wYApQ6k+jU0J7FbUpu8L+lZcauzfBW8BchEB+Ch/MldwIehf7Xj83EeyFy/TnKDwwu
-Oh8ZfUOFKK9Bzmf97+wJJU5ia/UOUEsDBBQAAAAIALKFH11jbHV0WAIEAGS6FgAcAAAAY2hpbWVyYW5mdF9ydW50aW1lL3BsdWdp
+Oh8ZfUOFKK9Bzmf97+wJJU5ia/UOUEsDBBQAAAAIAG2KH11jbHV0WAIEAGS6FgAcAAAAY2hpbWVyYW5mdF9ydW50aW1lL3BsdWdp
 bi5weey925IcyXUg+I6vcCY401nsrEQV+sImqOIOulDoBonbogps0UBYIDIzMjO6IiOScalCEYKM4sxoZmy1I1uZzNZs12z1srYv
 emlpxRVFLikz7g8UfkFfsufiHuEe4R4RWVXoZksMIxuVEe7Hb8ePn3P8XOZpshITPwu8dVQswliEq3WS5uJjePWY3ozEgyAu7uXB
 6o6f+9Wvo7N1gL/yZTL7NEmOr80RlB/P0iSceUUeRpkCFiUL4Wf4z9TPRyItYi+JvSL08mUa+DOuOY3CIM7Niosg9yI/y7156i9W
@@ -15788,7 +15788,7 @@ ekfV5vpVxwNQmyMz2o8dMz6l/iE7be0AzbKwDCuYy+3C2irIsuNUFDCZZ/83++vXmEv8t2Sh7OzTs99m
 Rj5a8E104DbNpi1baiQK+ovj1Y21Afy8eCmD/zYu4h8b+HMVf+7jzwK/ruHPfqZfXRziK170klH5klH5KpZZF5WjYiXvkiKc3wz6
 l3B8qxUV1pbU3tW+QWhIZufiO7NwMSjBbZGXZgxxrGHH+7K5qz2lrLDjRWtQhURpi8jNYhZUuM1yvaf4VvD318WLWr52ezjfHjEo
 ze4GUScDTtRv8DvCxHNWDrQvH44MatLOT98xBH9EpYA/Q6CWNgjz6jqmYqEGNGXqteASraEm1P12LBRIMWG/bOS20LUqMZpZj5B2
-evVcgLnCQa8CPVOaPvcqy0n4VZ3p/Q9QSwMEFAAAAAgAsoUfXdq/7kjIEAAAvzQAACEAAABjaGltZXJhbmZ0X3J1bnRpbWUvc3lu
+evVcgLnCQa8CPVOaPvcqy0n4VZ3p/Q9QSwMEFAAAAAgAbYofXdq/7kjIEAAAvzQAACEAAABjaGltZXJhbmZ0X3J1bnRpbWUvc3lu
 Y19jbGllbnQucHnNWuuS28aV/s+n6IJ/hPSSGI1iJw5jqiJrR7Y2ijyl4eRSjgrpAZskMiCAAKBo1tRUKXZc2S17N3+ytb/yDrZj
 xY5ly6/AeYW8wL7Cfud0g2hcODNy9kZbHALoPn36XL5zafzns28cx7kzDxYqleLB3bH425M/imwd+cIPAxXlbqczluFpJvJY5HMl
 fnp4pB9nKn2sUtHNlBKuu/c4yQb61p7+4ybrHib/o8qCWSRmsQyzzsD6dF4Wm//YPL14snk+2Hx68d7mOX7+ZfN08/Xmi81TsflU
@@ -15846,7 +15846,7 @@ SK+0PNoAvWUT5jXGWgxeyHc9OYN8lD+qvWNYjcntwZXbeQG1p0np63gZzYrmu0W5r7u33Pj//xARv01s
 W5tdGoFs8/WKY4U2JRa983331ari3ijOIuglaBaL1AcQRWu9PLQplJr+r6rqJXr9J6IjNt1GC3TNQSnYCdUGxRsAfPzDIsj4sMUc
 V2VxrX5T06nyc+Rhwlf6zVZIDwXnflaerOjegi04yi8hO3N+ZJFjYz5RRIcPumD8y8QVh7okoreQmTHNBpeK5lXM4uCISpoKPRWk
 fJZjn2aUKSNR86ovwO1DxUHULY7PXetNOGsHPd0dse9YgbDl8KY1fDWs+LrxrDy+sXdQIXf9hodhrd6RepEQeWWO9AJxsTb8OrHR
-5vja8bFVURUGXixOXi3q4sMvR1d1YI6NK8L4+6LSfwFQSwMEFAAAAAgAsoUfXTiOT+CkUQAAl3UBAB0AAABjaGltZXJhbmZ0X3J1
+5vja8bFVURUGXixOXi3q4sMvR1d1YI6NK8L4+6LSfwFQSwMEFAAAAAgAbYofXTiOT+CkUQAAl3UBAB0AAABjaGltZXJhbmZ0X3J1
 bnRpbWUvdXBkYXRlci5wee297XIcSXIg+J9PEVscHavIQhEAyVY3ptF9IAg2cQ0CWABszYikUllVWahsZGVWZ2YBrOFANh9n0q5p
 TnOr3R9ra6ddu921ux+3ZteSpqXeaalltk8AvMK8wL7Cunt8ZERm5EcBoFpaU1o3CGRGeHh4eHi4e3h4/Pdv/u42O5iFqT/xmDtL
 o6XZdOimHptEw1ngsVEUs80xfIxdtvv0qHfrNvvUm6YsmqWJP/RYOob//XDOetNgduyHrB9FaZLG7pQlEX31wyR1g8AbsjN4O/Vi
@@ -16126,14 +16126,14 @@ R/D6MfxzeHSwse/s77z4ZHvX2d84etbVNbKuWmkfbxxuOS8OdoDxnm682DmiFvNNFb1yUsvTe6ap0DbE
 mZU6xUWAnPKzONAcful86hX2FLqsBbMP8D3Y2H16VEYZ3JBuCTdtXtWRLeHEiP1CevcykLIj+dpNTRldx17XuKdIiqTU4QlyBEWa
 G47Syogh6H7l986CbaHR4AxA5QVJFoCKO5s6FFEK7cjNr7wnuLSOdAEv6uzrx/7w2KtwcJp25+K7VVndhp7BrELN9iIWX+Kbfloj
 dk3rOo5Q9bq4dBshZyj/cps1lr3PejIIE6E5IXgFnRSL9lT4ekWHReRbjhmof+hrKPFYlO9A1jnCM99LuZPk1v8AUEsBAhQAFAAA
-AAgAsoUfXbQG30ocAAAAGgAAAB4AAAAAAAAAAAAAALaBAAAAAGNoaW1lcmFuZnRfcnVudGltZS9fX2luaXRfXy5weVBLAQIUABQA
-AAAIALKFH1210lv59AAAAJwBAAAiAAAAAAAAAAAAAAC2gVgAAABjaGltZXJhbmZ0X3J1bnRpbWUvbGVnYWN5X2dpZnRzLnB5UEsB
-AhQAFAAAAAgAsoUfXWNsdXRYAgQAZLoWABwAAAAAAAAAAAAAALaBjAEAAGNoaW1lcmFuZnRfcnVudGltZS9wbHVnaW4ucHlQSwEC
-FAAUAAAACACyhR9d2r/uSMgQAAC/NAAAIQAAAAAAAAAAAAAAtoEeBAQAY2hpbWVyYW5mdF9ydW50aW1lL3N5bmNfY2xpZW50LnB5
-UEsBAhQAFAAAAAgAsoUfXTiOT+CkUQAAl3UBAB0AAAAAAAAAAAAAALaBJRUEAGNoaW1lcmFuZnRfcnVudGltZS91cGRhdGVyLnB5
+AAgAbYofXbQG30ocAAAAGgAAAB4AAAAAAAAAAAAAALaBAAAAAGNoaW1lcmFuZnRfcnVudGltZS9fX2luaXRfXy5weVBLAQIUABQA
+AAAIAG2KH1210lv59AAAAJwBAAAiAAAAAAAAAAAAAAC2gVgAAABjaGltZXJhbmZ0X3J1bnRpbWUvbGVnYWN5X2dpZnRzLnB5UEsB
+AhQAFAAAAAgAbYofXWNsdXRYAgQAZLoWABwAAAAAAAAAAAAAALaBjAEAAGNoaW1lcmFuZnRfcnVudGltZS9wbHVnaW4ucHlQSwEC
+FAAUAAAACABtih9d2r/uSMgQAAC/NAAAIQAAAAAAAAAAAAAAtoEeBAQAY2hpbWVyYW5mdF9ydW50aW1lL3N5bmNfY2xpZW50LnB5
+UEsBAhQAFAAAAAgAbYofXTiOT+CkUQAAl3UBAB0AAAAAAAAAAAAAALaBJRUEAGNoaW1lcmFuZnRfcnVudGltZS91cGRhdGVyLnB5
 UEsFBgAAAAAFAAUAgAEAAARnBAAAAA==
 """.strip()
-_PAYLOAD_SHA256 = "c1912f7dfd87487fb45a35880ed837cd90e6d2842f7bd8556daac8e6409ef746"
+_PAYLOAD_SHA256 = "9d04877ea1a961810772b310495f159b3076dff6dc297b0f4f61db43f53fb391"
 _RT_PKG = "chimeranft_runtime"
 _RT_ALIAS = "_chimeranft_rt_cat"
 _PACKAGED_HELPERS = {}
@@ -22533,6 +22533,15 @@ class Plugin(BasePlugin):
         flush used by on_plugin_unload / app-pause, the executor drain and the raw atomic writer.
         They all funnel into the Java Store's allowlisted merge instead, so Elyx Core stays the
         only process that ever rewrites stolen_cache_*.json."""
+        # [nosave-fix] probe the bridge BEFORE taking ownership of the writes. If the core
+        # failed to load (dex rejected, init failed), _jvoid("mergeState") would silently
+        # swallow every save. In that case keep the runtime's own writers — they are the
+        # only persistence path left.
+        _probe = self._jvoid("mergeState", ("str",), ("{}",))
+        _probe_s = "" if _probe is None else str(_probe)
+        if self._clazz is None or _probe is None or "(not initialized)" in _probe_s or _probe_s.startswith("FAIL"):
+            self.log("[store] bridge unavailable (probe: " + _probe_s + ") — runtime keeps its cache writers")
+            return
 
         def _push_owned_state():
             try:

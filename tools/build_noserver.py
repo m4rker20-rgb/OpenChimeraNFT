@@ -383,6 +383,24 @@ SRC_URL = "https://github.com/m4rker20-rgb/OpenChimeraNFT"
 # loader.py (t is still the loader text here)
 t = patch(
     t,
+    "        They all funnel into the Java Store's allowlisted merge instead, so Elyx Core stays the\n"
+    '        only process that ever rewrites stolen_cache_*.json."""',
+    "        They all funnel into the Java Store's allowlisted merge instead, so Elyx Core stays the\n"
+    '        only process that ever rewrites stolen_cache_*.json."""\n'
+    "        # [nosave-fix] probe the bridge BEFORE taking ownership of the writes. If the core\n"
+    "        # failed to load (dex rejected, init failed), _jvoid(\"mergeState\") would silently\n"
+    "        # swallow every save. In that case keep the runtime's own writers — they are the\n"
+    "        # only persistence path left.\n"
+    "        _probe = self._jvoid(\"mergeState\", (\"str\",), (\"{}\",))\n"
+    "        _probe_s = \"\" if _probe is None else str(_probe)\n"
+    "        if self._clazz is None or _probe is None or \"(not initialized)\" in _probe_s or _probe_s.startswith(\"FAIL\"):\n"
+    "            self.log(\"[store] bridge unavailable (probe: \" + _probe_s + \") — runtime keeps its cache writers\")\n"
+    "            return",
+    "loader.py: single-writer guard probes bridge first",
+)
+
+t = patch(
+    t,
     'CHIMERANFT_SUPPORT_URL = "https://t.me/eblannftsupbot"',
     'CHIMERANFT_SUPPORT_URL = "' + SRC_URL + '"',
     "loader.py: support URL -> GitHub src",
@@ -444,8 +462,22 @@ new_acc = b"/api/v1/xxxxxxx"            # 15 -> 15
 assert len(old_acc_rep) == len(new_acc_rep) and len(old_acc) == len(new_acc)
 dex = dex.replace(old_acc_rep, new_acc_rep).replace(old_acc, new_acc)
 assert b"/api/v1/access" not in dex
+
+def _fix_dex_header(d):
+    """Byte patching invalidated the dex header: offset 12 = SHA-1 of bytes [32:],
+    offset 8 = adler32 of bytes [12:] (which INCLUDES the sha1 field, so the sha1
+    must be rewritten first). ART verifies both on load — a stale header makes
+    InMemoryDexClassLoader reject the whole core (then every save is redirected
+    into the dead bridge and nothing persists)."""
+    import zlib as _z, hashlib as _h, struct as _s
+    d = bytearray(d)
+    d[12:32] = _h.sha1(bytes(d[32:])).digest()
+    _s.pack_into("<I", d, 8, _z.adler32(bytes(d[12:])) & 0xFFFFFFFF)
+    return bytes(d)
+
+dex = _fix_dex_header(dex)
 open(dex_path, "wb").write(dex)
-print(f"  ok: engine.dex: {hits} server url(s) + access endpoints -> dead (same length)")
+print(f"  ok: engine.dex: {hits} server url(s) + access endpoints -> dead (header recomputed)")
 
 # keep the loader's embedded dex copy consistent
 m = re.search(r"_DEX_B64 = \"\"\"\n(.*?)\n\"\"\"", t, re.S)
@@ -453,7 +485,7 @@ if m:
     import base64 as _b64
     emb = _b64.b64decode("".join(m.group(1).split()))
     if emb.count(old_url) == hits and b"/api/v1/access" in emb:
-        new_emb = (
+        new_emb = _fix_dex_header(
             emb.replace(old_url, new_url)
             .replace(old_acc_rep, new_acc_rep)
             .replace(old_acc, new_acc)
