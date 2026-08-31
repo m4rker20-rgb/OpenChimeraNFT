@@ -74,8 +74,8 @@ def _gen(java_class, method_name):
 JRunnable = _gen(jclass("java.lang.Runnable"), "run")
 
 __id__ = "eblannft"
-__name__ = "Chimera NFT"
-__description__ = "Chimera NFT (бывший eblanNFT) — NFT-подарки, оформление профиля и синхронизация между пользователями плагина."
+__name__ = "OpenChimeraNFT"
+__description__ = "OpenChimeraNFT (бывший Chimera NFT) — NFT-подарки и оформление профиля. Локальная сборка: без серверов, синхронизации и автообновлений."
 __author__ = "@xarmaq"
 __version__ = "1.0.0"
 __icon__ = "HappyHappyPepe/31"
@@ -2627,7 +2627,7 @@ class NftClonerPlugin(BasePlugin):
         self._shutdown_bg_executor()
 
     # ---------------------------------------------------------------
-    # Chimera NFT 1.0.2 — VPS sync integration
+    # OpenChimeraNFT 1.0.2 — VPS sync integration
     # ---------------------------------------------------------------
     def _sync_get_settings(self):
         cfg = {
@@ -4813,9 +4813,9 @@ class NftClonerPlugin(BasePlugin):
             except:
                 pass
             try:
-                title.setText(f"Chimera NFT {__version__}")
+                title.setText(f"OpenChimeraNFT {__version__}")
             except:
-                title.setText("Chimera NFT")
+                title.setText("OpenChimeraNFT")
             try:
                 title.setSingleLine(True)
                 title.setGravity(Gravity.CENTER)
@@ -4836,7 +4836,7 @@ class NftClonerPlugin(BasePlugin):
             except:
                 pass
             try:
-                subtitle.setText("Основной канал Chimera NFT — NFT подарки, юзернеймы и номера.")
+                subtitle.setText("Основной канал OpenChimeraNFT — NFT подарки, юзернеймы и номера.")
             except:
                 pass
             try:
@@ -5150,7 +5150,7 @@ class NftClonerPlugin(BasePlugin):
             ("catalog", "\u041a\u0430\u0442\u0430\u043b\u043e\u0433 \u0438 \u0446\u0435\u043d\u044b", "\u0421\u043f\u0438\u0441\u043a\u0438 \u043f\u043e\u0434\u0430\u0440\u043a\u043e\u0432, \u0444\u0438\u043b\u044c\u0442\u0440\u044b, floor-\u0446\u0435\u043d\u044b"),
             ("temp", "\u0412\u0440\u0435\u043c\u0435\u043d\u043d\u044b\u0435 \u0444\u0430\u0439\u043b\u044b", ".tmp, .bak, .recover \u0438 \u0441\u043b\u0443\u0436\u0435\u0431\u043d\u044b\u0435 sidecar-\u0444\u0430\u0439\u043b\u044b"),
             ("assets", "\u0410\u0441\u0441\u0435\u0442\u044b \u0438 \u0430\u0432\u0430\u0442\u0430\u0440\u044b", "\u041a\u044d\u0448 \u043a\u0430\u0440\u0442\u0438\u043d\u043e\u043a \u0438 about/support \u0430\u0441\u0441\u0435\u0442\u043e\u0432"),
-            ("profiles", "\u042d\u043a\u0441\u043f\u043e\u0440\u0442\u044b .profile", "\u0421\u043e\u0445\u0440\u0430\u043d\u0451\u043d\u043d\u044b\u0435 \u043a\u043e\u043d\u0444\u0438\u0433\u0438 \u0438\u0437 Downloads/Chimera NFT"),
+            ("profiles", "\u042d\u043a\u0441\u043f\u043e\u0440\u0442\u044b .profile", "\u0421\u043e\u0445\u0440\u0430\u043d\u0451\u043d\u043d\u044b\u0435 \u043a\u043e\u043d\u0444\u0438\u0433\u0438 \u0438\u0437 Downloads/OpenChimeraNFT"),
             ("local_profile", "\u041b\u043e\u043a\u0430\u043b\u044c\u043d\u044b\u0439 \u043f\u0440\u043e\u0444\u0438\u043b\u044c", "\u041f\u043e\u0434\u0430\u0440\u043a\u0438, username, number, rating \u0438 \u043d\u0430\u0441\u0442\u0440\u0439\u043a\u0438 \u043f\u0440\u043e\u0444\u0438\u043b\u044f"),
         ]
 
@@ -6948,7 +6948,7 @@ class NftClonerPlugin(BasePlugin):
                 pass
             tv = TextView(ctx)
             try:
-                tv.setText(f"\nChimera NFT • v{__version__}")
+                tv.setText(f"\nOpenChimeraNFT • v{__version__}")
                 tv.setGravity(Gravity.CENTER)
                 tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13.0)
                 tv.setTextColor(self._theme_color("key_windowBackgroundWhiteGrayText2", 0xFF9A9A9A))
@@ -6961,7 +6961,7 @@ class NftClonerPlugin(BasePlugin):
             return None
 
     def _build_settings_footer_view(self, ctx):
-        # Legacy «О Chimera NFT» + «Поддержка» footer card. Replaced by the
+        # Legacy «О OpenChimeraNFT» + «Поддержка» footer card. Replaced by the
         # «О плагине» entry in the main settings list, which the user
         # finds via the regular row instead of a faded-out trailing card.
         return None
@@ -6985,7 +6985,7 @@ class NftClonerPlugin(BasePlugin):
 
             title = TextView(ctx)
             try:
-                title.setText("О Chimera NFT")
+                title.setText("О OpenChimeraNFT")
                 title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16.0)
                 title.setTextColor(0xFFFFFFFF)
                 try:
@@ -15904,7 +15904,7 @@ class NftClonerPlugin(BasePlugin):
             downloads = Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_DOWNLOADS
             ).getAbsolutePath()
-            target = os.path.join(downloads, "Chimera NFT")
+            target = os.path.join(downloads, "OpenChimeraNFT")
             ensure_dir_exists(target)
             return target
         except Exception as e:
@@ -16002,7 +16002,7 @@ class NftClonerPlugin(BasePlugin):
             raw_json = json.dumps(payload, indent=2, ensure_ascii=False)
             raw_b64 = base64.b64encode(raw_json.encode("utf-8")).decode("utf-8")
             content = (
-                f"# Chimera NFT profile\n"
+                f"# OpenChimeraNFT profile\n"
                 f"# {time.strftime('%Y-%m-%d %H:%M:%S')}\n"
                 f"# sections: {', '.join(sorted(payload.get('sections', {}).keys()))}\n\n"
                 f"{raw_b64}"
@@ -16996,7 +16996,7 @@ class NftClonerPlugin(BasePlugin):
                 x = -step_x * 2 + offset
                 while x < w + step_x * 2:
                     try:
-                        canvas.drawText("Chimera NFT", float(x), float(y), paint)
+                        canvas.drawText("OpenChimeraNFT", float(x), float(y), paint)
                     except:
                         pass
                     x += step_x
@@ -17283,7 +17283,7 @@ class NftClonerPlugin(BasePlugin):
             content.addView(avatar_shell, LinearLayout.LayoutParams(AndroidUtilities.dp(148), AndroidUtilities.dp(148)))
 
             title = TextView(ctx)
-            title.setText("Добро пожаловать в\nChimera NFT!")
+            title.setText("Добро пожаловать в\nOpenChimeraNFT!")
             title.setGravity(Gravity.CENTER)
             title.setTextSize(30)
             try:
@@ -18693,7 +18693,7 @@ class NftClonerPlugin(BasePlugin):
             for sub in (
                 os.path.join(str(downloads), self._detect_client_storage_dir_name(), "eblannft"),
                 os.path.join(str(downloads), "eblannft"),
-                os.path.join(str(downloads), "Chimera NFT"),
+                os.path.join(str(downloads), "OpenChimeraNFT"),
             ):
                 try:
                     if os.path.isdir(sub):
@@ -20086,7 +20086,7 @@ class NftClonerPlugin(BasePlugin):
                     prepared.append((entry, wrapper))
 
             # Merge official Telegram gifts from the native cached profile
-            # list. Remote Chimera NFT wrappers are already injected into that
+            # list. Remote OpenChimeraNFT wrappers are already injected into that
             # list, so merge identities prevent showing them twice.
             for entry, wrapper in native_pairs:
                 identity = self._copy_candidate_identity(entry, wrapper)
@@ -23772,9 +23772,9 @@ class NftClonerPlugin(BasePlugin):
         gift = self._extract_visible_gift_from_sheet(sheet)
         key = self._import_gift_to_library(gift=gift, wrapper=wrapper, inject=True, official_import=True, local_only=False)
         if not key:
-            BulletinHelper.show_error("Не удалось добавить подарок в Chimera NFT")
+            BulletinHelper.show_error("Не удалось добавить подарок в OpenChimeraNFT")
             return False
-        BulletinHelper.show_success("Подарок добавлен в Chimera NFT")
+        BulletinHelper.show_success("Подарок добавлен в OpenChimeraNFT")
         return True
 
     def _clear_pending_local_upgrade(self):
@@ -27792,7 +27792,7 @@ class GiftItemOptionsShowHook(MethodHook):
                         item_options.add(icon_upgrade, f"\u041b\u043e\u043a\u0430\u043b\u044c\u043d\u043e \u0443\u043b\u0443\u0447\u0448\u0438\u0442\u044c \u2022 {LOCAL_VISUAL_UPGRADE_STARS}\u2605", JRunnable(_on_local_upgrade))
                     item_options.add(icon_delete, "\u0423\u0434\u0430\u043b\u0438\u0442\u044c", JRunnable(_on_delete))
                 else:
-                    item_options.add(icon_add, "\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0432 Chimera NFT", JRunnable(_on_add))
+                    item_options.add(icon_add, "\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0432 OpenChimeraNFT", JRunnable(_on_add))
                     if importable_gift is not None and (not self.plugin._looks_like_unique_gift(importable_gift)):
                         item_options.add(icon_upgrade, f"\u041b\u043e\u043a\u0430\u043b\u044c\u043d\u043e \u0443\u043b\u0443\u0447\u0448\u0438\u0442\u044c \u2022 {LOCAL_VISUAL_UPGRADE_STARS}\u2605", JRunnable(_on_local_upgrade))
                 self.plugin._gift_menu_injected_once = True

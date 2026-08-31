@@ -134,6 +134,17 @@ SRC_URL = "https://github.com/m4rker20-rgb/OpenChimeraNFT"
 # plugin.py (payload) — MUST run before [2] so the rebuilt zip carries the button
 pp = os.path.join(rt_pkg, "plugin.py")
 pt = rd(pp)
+# full display rebrand of the runtime (19 strings: __name__, __description__, UI titles)
+n_pp = pt.count("Chimera NFT")
+pt = pt.replace("Chimera NFT", "OpenChimeraNFT")
+print(f"  ok: plugin.py: rebranded {n_pp} display strings")
+# truthful description: sync is disabled in this build
+pt = patch(
+    pt,
+    "OpenChimeraNFT (бывший eblanNFT) — NFT-подарки, оформление профиля и синхронизация между пользователями плагина.",
+    "OpenChimeraNFT (бывший Chimera NFT) — NFT-подарки и оформление профиля. Локальная сборка: без серверов, синхронизации и автообновлений.",
+    "plugin.py: __description__ rewritten",
+)
 pt = patch(
     pt,
     'info_desc.setText("t.me/eblannftsupbot")',
@@ -329,11 +340,40 @@ t = t.replace("Chimera NFT", "OpenChimeraNFT")
 print(f"  ok: loader.py: rebranded {n_rebrand} display strings")
 
 # locales (separate zip entries, patched on disk)
+LOCALE_FIX = {
+    "strings_ru.json": [
+        ("(бывший eblanNFT)", "(бывший Chimera NFT)"),
+        (
+            "NFT-подарки, оформление профиля и синхронизация между пользователями.",
+            "NFT-подарки и оформление профиля. Локальная сборка: без серверов, синхронизации и автообновлений.",
+        ),
+        (
+            "NFT-подарки, оформление профиля\\nи синхронизация между пользователями.",
+            "NFT-подарки и оформление профиля.\\nЛокальная сборка: без серверов.",
+        ),
+    ],
+    "strings_en.json": [
+        ("(formerly eblanNFT)", "(formerly Chimera NFT)"),
+        (
+            "NFT gifts, profile customization, and sync between plugin users.",
+            "NFT gifts and profile customization. Local build: no servers, no sync.",
+        ),
+        (
+            "NFT gifts, profile customization,\\nand sync between plugin users.",
+            "NFT gifts and profile customization.\\nLocal build: no servers.",
+        ),
+    ],
+}
 for loc in ("strings_en.json", "strings_ru.json"):
     lpath = os.path.join(WORK, "chimeranft", "locales", loc)
     lt = rd(lpath)
     lc = lt.count("Chimera NFT")
     lt = lt.replace("Chimera NFT", "OpenChimeraNFT")
+    for old, new in LOCALE_FIX[loc]:
+        n = lt.count(old)
+        if n:
+            lt = lt.replace(old, new)
+            print(f"  ok: locales/{loc}: {n}x phrase fixed")
     wr(lpath, lt)
     print(f"  ok: locales/{loc}: rebranded {lc} strings")
 
@@ -466,7 +506,17 @@ shutil.copy(new_rp, rp_path)  # update the shipped asset copy too
 with zipfile.ZipFile(SRC_ELYX) as zin, zipfile.ZipFile(
     OUT, "w", zipfile.ZIP_DEFLATED
 ) as zout:
-    replaced = ("chimeranft/src/loader.py", "chimeranft/src/runtime_payload.zip", "chimeranft/java/engine.dex")
+    replaced = (
+        "chimeranft/src/loader.py",
+        "chimeranft/src/runtime_payload.zip",
+        "chimeranft/java/engine.dex",
+        "chimeranft/locales/strings_en.json",
+        "chimeranft/locales/strings_ru.json",
+    )
+    patched = {
+        "chimeranft/locales/strings_en.json": os.path.join(WORK, "chimeranft", "locales", "strings_en.json"),
+        "chimeranft/locales/strings_ru.json": os.path.join(WORK, "chimeranft", "locales", "strings_ru.json"),
+    }
     for info in zin.infolist():
         if info.filename in replaced:
             continue
@@ -474,6 +524,8 @@ with zipfile.ZipFile(SRC_ELYX) as zin, zipfile.ZipFile(
     zout.write(lp, "chimeranft/src/loader.py")
     zout.write(rp_path, "chimeranft/src/runtime_payload.zip")
     zout.write(dex_path, "chimeranft/java/engine.dex")
+    for arcname, fpath in patched.items():
+        zout.write(fpath, arcname)
 print(f"[6] wrote {OUT} ({os.path.getsize(OUT)} bytes)")
 
 # ---------- 6b. build the installable .eaf (exteraGram reads .eaf as an archive;
