@@ -205,6 +205,19 @@ pt = patch(
     "                        sheet.dismiss()",
     "plugin.py: about sheet button click -> src",
 )
+# [nosave-fix] copy-flow: a dead core returns None -> "" with NO FAIL marker, so the
+# bridge path "succeeded" with added=0 and the Python fallback never ran — gifts were
+# silently dropped in-session. No "added=" => nothing persisted => force the fallback.
+pt = patch(
+    pt,
+    '                        if "FATAL" in result or "FAIL" in result or "not initialized" in result:\n'
+    "                            raise RuntimeError(result)",
+    "                        # [nosave-fix] a dead core returns None -> \"\" without any FAIL marker;\n"
+    "                        # no \"added=\" means nothing was persisted — force the Python fallback\n"
+    "                        if match_added is None or \"FATAL\" in result or \"FAIL\" in result or \"not initialized\" in result:\n"
+    '                            raise RuntimeError(result or "bridge returned no result")',
+    "plugin.py: copy-flow detects dead bridge",
+)
 wr(pp, pt)
 
 # ---------- 2. rebuild runtime_payload.zip ----------
@@ -498,6 +511,52 @@ if m:
         print("  ok: loader.py: _DEX_B64 already patched")
     else:
         print("  warn: loader.py: _DEX_B64 has neither url pattern — inspect manually")
+# [nosave-fix] add-gift bridges: fail loudly when the core is dead so every caller's
+# Python fallback (gift_library + _save_cache) actually runs instead of eating writes.
+t = patch(
+    t,
+    "                def _elyx_add_gifts(entries):\n"
+    '                    payload = json.dumps(list(entries or []), ensure_ascii=False)\n'
+    '                    result = self._jvoid("addGifts", ("str",), (payload,))',
+    "                def _elyx_add_gifts(entries):\n"
+    "                    if self._clazz is None:\n"
+    '                        raise RuntimeError("core not loaded")\n'
+    '                    payload = json.dumps(list(entries or []), ensure_ascii=False)\n'
+    '                    result = self._jvoid("addGifts", ("str",), (payload,))\n'
+    "                    if result is None:\n"
+    '                        raise RuntimeError("core bridge returned no result")',
+    "loader.py: add-gifts bridge raises on dead core",
+)
+t = patch(
+    t,
+    '            self._jvoid("addGifts", ("str",), (json.dumps(entries),))\n'
+    '            self._toast("Добавлено %d NFT ✓" % len(entries))',
+    '            _batch_res = self._jvoid("addGifts", ("str",), (json.dumps(entries),))\n'
+    "            if _batch_res is None or \"FAIL\" in str(_batch_res) or \"not initialized\" in str(_batch_res):\n"
+    '                raise RuntimeError("core addGifts: " + str(_batch_res))\n'
+    '            self._toast("Добавлено %d NFT ✓" % len(entries))',
+    "loader.py: constructor batch add honest result",
+)
+t = patch(
+    t,
+    '            self._jvoid("addGifts", ("str",), (json.dumps(entries),))\n'
+    '            nm = str(title or "").strip() or str(tpl.get("title") or "подарок")',
+    '            _reg_res = self._jvoid("addGifts", ("str",), (json.dumps(entries),))\n'
+    "            if _reg_res is None or \"FAIL\" in str(_reg_res) or \"not initialized\" in str(_reg_res):\n"
+    '                raise RuntimeError("core addGifts: " + str(_reg_res))\n'
+    '            nm = str(title or "").strip() or str(tpl.get("title") or "подарок")',
+    "loader.py: regular add honest result",
+)
+t = patch(
+    t,
+    '            self.log("OpenChimeraNFT load error: " + _cause(e))',
+    '            self.log("OpenChimeraNFT load error: " + _cause(e))\n'
+    "            try:\n"
+    '                run_on_ui_thread(lambda: self._toast("OpenChimeraNFT: ядро не загрузилось — " + _cause(e)))\n'
+    "            except Exception:\n"
+    "                pass",
+    "loader.py: toast when the core fails to load",
+)
 wr(lp, t)
 
 # ---------- 4. verify no server refs remain ----------

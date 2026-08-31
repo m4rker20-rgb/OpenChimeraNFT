@@ -20279,8 +20279,10 @@ class NftClonerPlugin(BasePlugin):
                         match_dup = __import__("re").search(r"\bduplicate=(\d+)", result)
                         added = int(match_added.group(1)) if match_added else 0
                         apply_skipped += int(match_dup.group(1)) if match_dup else 0
-                        if "FATAL" in result or "FAIL" in result or "not initialized" in result:
-                            raise RuntimeError(result)
+                        # [nosave-fix] a dead core returns None -> "" without any FAIL marker;
+                        # no "added=" means nothing was persisted — force the Python fallback
+                        if match_added is None or "FATAL" in result or "FAIL" in result or "not initialized" in result:
+                            raise RuntimeError(result or "bridge returned no result")
                         # Refresh the UI helper's snapshot after Java completed
                         # its synchronous atomic write, so the next picker open
                         # sees the same dedup state as Elyx Core.
