@@ -128,6 +128,74 @@ t = patch(
 )
 wr(p, t)
 
+# ---------- 1d. src link + "Исходный код (GitHub)" button (OpenEblanNFT-style) ----------
+SRC_URL = "https://github.com/m4rker20-rgb/OpenChimeraNFT"
+
+# plugin.py (payload) — MUST run before [2] so the rebuilt zip carries the button
+pp = os.path.join(rt_pkg, "plugin.py")
+pt = rd(pp)
+pt = patch(
+    pt,
+    'info_desc.setText("t.me/eblannftsupbot")',
+    'info_desc.setText("' + SRC_URL + '")',
+    "plugin.py: footer card desc -> src",
+)
+pt = patch(
+    pt,
+    '                    Browser.openUrl(v.getContext(), "https://t.me/eblannftsupbot")\n'
+    "                except:\n"
+    "                    try:\n"
+    '                        Browser.openUrlInSystemBrowser(v.getContext(), "https://t.me/eblannftsupbot")\n'
+    "                    except:\n"
+    "                        pass\n"
+    "\n"
+    "            try:\n"
+    "                support_row.setOnClickListener(JOnClickListener(_open_support))",
+    '                    Browser.openUrl(v.getContext(), "' + SRC_URL + '")\n'
+    "                except:\n"
+    "                    try:\n"
+    '                        Browser.openUrlInSystemBrowser(v.getContext(), "' + SRC_URL + '")\n'
+    "                    except:\n"
+    "                        pass\n"
+    "\n"
+    "            try:\n"
+    "                support_row.setOnClickListener(JOnClickListener(_open_support))",
+    "plugin.py: footer card click -> src",
+)
+pt = patch(
+    pt,
+    '            desc.setText("chimeranft\\nЛокальный плагин для NFT-подарков,\\nпрофиля и визуальных настроек.")',
+    '            desc.setText("OpenChimeraNFT\\nЛокальный плагин для NFT-подарков,\\nпрофиля и визуальных настроек.\\n\\nSrc: ' + SRC_URL + '")',
+    "plugin.py: about sheet desc + src line",
+)
+pt = patch(
+    pt,
+    '            btn.setText("Поддержка")',
+    '            btn.setText("Исходный код (GitHub)")',
+    "plugin.py: about sheet button label",
+)
+pt = patch(
+    pt,
+    '                        Browser.openUrl(v.getContext(), "https://t.me/eblannftsupbot")\n'
+    "                    except:\n"
+    "                        try:\n"
+    '                            Browser.openUrlInSystemBrowser(v.getContext(), "https://t.me/eblannftsupbot")\n'
+    "                        except:\n"
+    "                            pass\n"
+    "                    try:\n"
+    "                        sheet.dismiss()",
+    '                        Browser.openUrl(v.getContext(), "' + SRC_URL + '")\n'
+    "                    except:\n"
+    "                        try:\n"
+    '                            Browser.openUrlInSystemBrowser(v.getContext(), "' + SRC_URL + '")\n'
+    "                        except:\n"
+    "                            pass\n"
+    "                    try:\n"
+    "                        sheet.dismiss()",
+    "plugin.py: about sheet button click -> src",
+)
+wr(pp, pt)
+
 # ---------- 2. rebuild runtime_payload.zip ----------
 new_rp = os.path.join(WORK, "_runtime_payload_new.zip")
 names = [
@@ -268,6 +336,38 @@ for loc in ("strings_en.json", "strings_ru.json"):
     lt = lt.replace("Chimera NFT", "OpenChimeraNFT")
     wr(lpath, lt)
     print(f"  ok: locales/{loc}: rebranded {lc} strings")
+
+# ---------- 1e. loader-side src links (payload part of this lives in [1d]) ----------
+SRC_URL = "https://github.com/m4rker20-rgb/OpenChimeraNFT"
+
+# loader.py (t is still the loader text here)
+t = patch(
+    t,
+    'CHIMERANFT_SUPPORT_URL = "https://t.me/eblannftsupbot"',
+    'CHIMERANFT_SUPPORT_URL = "' + SRC_URL + '"',
+    "loader.py: support URL -> GitHub src",
+)
+t = patch(
+    t,
+    'CHIMERANFT_DEVELOPER_CHANNEL_URL = "https://t.me/vcvk1"',
+    'CHIMERANFT_DEVELOPER_CHANNEL_URL = "' + SRC_URL + '"',
+    "loader.py: developer channel URL -> GitHub src",
+)
+t = patch(
+    t,
+    '("Бот поддержки и связь", "Помощь и вопросы — t.me/eblannftsupbot."),',
+    '("Исходный код", "GitHub — m4rker20-rgb/OpenChimeraNFT."),',
+    "loader.py: supporter sheet row -> src",
+)
+t = patch(
+    t,
+    "    def _developer_channel_prompt_seen(self):\n"
+    '        """True = do NOT show it now. The name is kept because several callers test it.',
+    "    def _developer_channel_prompt_seen(self):\n"
+    "        return True  # [noserver] never promote the author's channel\n"
+    '        """True = do NOT show it now. The name is kept because several callers test it.',
+    "loader.py: author-channel prompt disabled",
+)
 # replace embedded payload b64 + sha
 b64 = base64.b64encode(rp_bytes).decode("ascii")
 b64_wrapped = "\n".join(textwrap.wrap(b64, 100))
@@ -478,6 +578,12 @@ inner = zipfile.ZipFile(io.BytesIO(rp2))
 for n in names:
     data = inner.read(n).decode("utf-8", errors="replace")
     assert "128.140.65.15" not in data, f"server url remains in {n}"
+src_button = "Исходный код (GitHub)"
+for needle in (src_button, "github.com/m4rker20-rgb/OpenChimeraNFT"):
+    assert needle in inner.read("chimeranft_runtime/plugin.py").decode("utf-8"), (
+        f"src button missing from payload: {needle}"
+    )
+assert "github.com/m4rker20-rgb/OpenChimeraNFT" in ld, "src link missing from loader"
 assert '"enabled": False' in inner.read("chimeranft_runtime/plugin.py").decode("utf-8")
 print("[7] artifact verified: hashes match, no server endpoints (py+dex), sync disabled")
 

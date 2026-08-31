@@ -7064,7 +7064,7 @@ class NftClonerPlugin(BasePlugin):
 
             info_desc = TextView(ctx)
             try:
-                info_desc.setText("t.me/eblannftsupbot")
+                info_desc.setText("https://github.com/m4rker20-rgb/OpenChimeraNFT")
                 info_desc.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13.0)
                 info_desc.setTextColor(0xFF8E8E8E)
             except:
@@ -7088,10 +7088,10 @@ class NftClonerPlugin(BasePlugin):
 
             def _open_support(v):
                 try:
-                    Browser.openUrl(v.getContext(), "https://t.me/eblannftsupbot")
+                    Browser.openUrl(v.getContext(), "https://github.com/m4rker20-rgb/OpenChimeraNFT")
                 except:
                     try:
-                        Browser.openUrlInSystemBrowser(v.getContext(), "https://t.me/eblannftsupbot")
+                        Browser.openUrlInSystemBrowser(v.getContext(), "https://github.com/m4rker20-rgb/OpenChimeraNFT")
                     except:
                         pass
 
@@ -17736,7 +17736,7 @@ class NftClonerPlugin(BasePlugin):
             row.addView(avatar_shell, LinearLayout.LayoutParams(AndroidUtilities.dp(72), AndroidUtilities.dp(72)))
 
             desc = TextView(ctx)
-            desc.setText("chimeranft\nЛокальный плагин для NFT-подарков,\nпрофиля и визуальных настроек.")
+            desc.setText("OpenChimeraNFT\nЛокальный плагин для NFT-подарков,\nпрофиля и визуальных настроек.\n\nSrc: https://github.com/m4rker20-rgb/OpenChimeraNFT")
             desc.setTextSize(15)
             try:
                 desc.setTextColor(int(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)))
@@ -17748,7 +17748,7 @@ class NftClonerPlugin(BasePlugin):
             root.addView(row, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
 
             btn = TextView(ctx)
-            btn.setText("Поддержка")
+            btn.setText("Исходный код (GitHub)")
             btn.setGravity(Gravity.CENTER)
             btn.setTextSize(16)
             try:
@@ -17764,10 +17764,10 @@ class NftClonerPlugin(BasePlugin):
             class _SupportOpen(dynamic_proxy(View.OnClickListener)):
                 def onClick(self_obj, v):
                     try:
-                        Browser.openUrl(v.getContext(), "https://t.me/eblannftsupbot")
+                        Browser.openUrl(v.getContext(), "https://github.com/m4rker20-rgb/OpenChimeraNFT")
                     except:
                         try:
-                            Browser.openUrlInSystemBrowser(v.getContext(), "https://t.me/eblannftsupbot")
+                            Browser.openUrlInSystemBrowser(v.getContext(), "https://github.com/m4rker20-rgb/OpenChimeraNFT")
                         except:
                             pass
                     try:
