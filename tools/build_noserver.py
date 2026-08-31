@@ -24,6 +24,8 @@ import shutil
 import sys
 import textwrap
 import zipfile
+import zlib
+import struct
 
 SRC_ELYX = r"C:\Users\user2\Desktop\eblanNFT\chimeranft.elyx.zip"
 WORK = r"C:\Users\user2\Desktop\eblanNFT\extracted\noserver_build"
@@ -367,7 +369,7 @@ pt = patch(
 pt = patch(
     pt,
     '__version__ = "1.0.0"',
-    '__version__ = "1.2.0"',
+    '__version__ = "1.2.3"',
     "plugin.py: __version__ 1.2.0",
 )
 wr(pp, pt)
@@ -611,26 +613,129 @@ t = patch(
 )
 
 # --- patch engine.dex (java core does its own server comms: gate/badges/market/sync) ---
+# ART verifies that string_ids are SORTED. A naive same-length rewrite that changes the
+# sort key ('access/' -> 'xxxxxxx') makes the whole dex fail verification:
+#   "Failure to verify dex file: Out-of-order string_ids: '/api/v1/xxxxxxxxxxxxx'
+#    then '/api/v1/badges'" -> ClassNotFoundException Gate/Main -> core dead ->
+#    every save silently dropped. So: parse the string table, nudge each replacement
+#    into the (prev, next) window, verify the full table, recompute the header.
 dex_path = os.path.join(WORK, "chimeranft", "java", "engine.dex")
 dex = open(dex_path, "rb").read()
-old_url = b"http://128.140.65.15:8787"
-new_url = b"http://0.0.0.0:8787/00000"  # same 25 bytes: numeric IP -> no DNS, connect refused locally
-assert len(old_url) == len(new_url)
-hits = dex.count(old_url)
-if hits == 0:
-    raise SystemExit("DEX FAIL: server url not found")
-dex = dex.replace(old_url, new_url)
-assert dex.count(new_url) == hits and old_url not in dex
 
-# [noban] same-length neutralization of the DEX access endpoints (report FIRST — it
-# contains the shorter path as a prefix)
-old_acc_rep = b"/api/v1/access/report"
-new_acc_rep = b"/api/v1/xxxxxxxxxxxxx"  # 21 -> 21
-old_acc = b"/api/v1/access/"
-new_acc = b"/api/v1/xxxxxxx"            # 15 -> 15
-assert len(old_acc_rep) == len(new_acc_rep) and len(old_acc) == len(new_acc)
-dex = dex.replace(old_acc_rep, new_acc_rep).replace(old_acc, new_acc)
-assert b"/api/v1/access" not in dex
+import struct as _dex_struct
+
+def _dex_strings(data):
+    """Parse the dex string table -> [(start, end, raw)]: the byte range of each
+    string's data (after the uleb128 size prefix, before the NUL terminator) plus
+    its RAW bytes — dex ordering is defined on these bytes, not on decoded text."""
+    n, = _dex_struct.unpack_from("<I", data, 0x38)
+    off, = _dex_struct.unpack_from("<I", data, 0x3C)
+    out = []
+    for i in range(n):
+        so, = _dex_struct.unpack_from("<I", data, off + 4 * i)
+        p = so
+        while data[p] & 0x80:
+            p += 1
+        p += 1
+        start = p
+        end = data.index(b"\x00", start)
+        out.append((start, end, bytes(data[start:end])))
+    return out
+
+def _dex_check_sorted(raws):
+    for i in range(1, len(raws)):
+        assert raws[i - 1] <= raws[i], (
+            "engine.dex: string table out of order at %d: %r > %r"
+            % (i, raws[i - 1], raws[i])
+        )
+
+def _nudge_dead(desired, lo, hi):
+    """Walk `desired` (printable ASCII bytes, fixed length) until lo < res < hi
+    and it is still a dead endpoint (no real host, no access path)."""
+    bb = bytearray(desired)
+
+    def safe(x):
+        return b"128.140.65." not in x and b"/api/v1/access" not in x
+
+    def inc():
+        for i in range(len(bb) - 1, -1, -1):
+            if bb[i] < 0x7E:
+                bb[i] += 1
+                return True
+            bb[i] = 0x21
+        return False
+
+    def dec():
+        for i in range(len(bb) - 1, -1, -1):
+            if bb[i] > 0x21:
+                bb[i] -= 1
+                return True
+            bb[i] = 0x7E
+        return False
+
+    for _ in range(100000):
+        res = bytes(bb)
+        if lo < res < hi and safe(res):
+            return res
+        if res <= lo or not safe(res):
+            if not inc():
+                break
+        else:
+            if not dec():
+                break
+    raise AssertionError(
+        "engine.dex: cannot nudge %r into (%r, %r)" % (desired, lo, hi)
+    )
+
+def _make_dead_dex(data):
+    """Neutralize the server endpoint strings so the dex still verifies:
+    each replacement keeps its byte length AND its sorted position (ALL
+    comparisons on raw bytes — the order ART enforces). lo = already-patched
+    left neighbor, hi = ORIGINAL right neighbor."""
+    strs = _dex_strings(data)
+    raws = [raw for (_, _, raw) in strs]
+    texts = [raw.decode("ascii", "replace") for raw in raws]
+    final = list(raws)
+    HOST = b"http://128.140.65.15:8787"
+    targets = {
+        b"/api/v1/access/": b"/api/v1/aaaaaaa",             # '/ack' < .. < 'access/report'
+        b"/api/v1/access/report": b"/api/v1/aaaaaaaaaaaaa",  # > new left, < '/api/v1/badges'
+        HOST: b"http://0.0.0.0:8787/00000",                 # fits ('http$default', 'https://...')
+    }
+    idxs = {}
+    for i, raw in enumerate(raws):
+        if raw in targets:
+            idxs[i] = ("exact", targets[raw])
+        elif HOST in raw:
+            idxs[i] = ("composite", raw)  # log-only '] | sync[started server=...]' line
+    assert len(idxs) == 4, "engine.dex: expected 4 endpoint strings, found %d" % len(idxs)
+    buf = bytearray(data)
+
+    def _composite_candidate(txt, oct1):
+        inner = b"%03d.000.000.0" % oct1  # 13 chars, same as '128.140.65.15'; log-only text
+        return txt.replace(HOST, b"http://" + inner + b":8787")
+
+    for i in sorted(idxs):
+        kind, payload = idxs[i]
+        lo = final[i - 1] if i > 0 else b""
+        hi = raws[i + 1] if i + 1 < len(raws) else b"\xff" * 64
+        if kind == "exact":
+            res = payload if (lo < payload < hi) else _nudge_dead(payload, lo, hi)
+        elif lo < (cand := _composite_candidate(payload, 30)) < hi:
+            res = cand  # '] | sync[started server=http://030.000.000.0:8787]' inside its window
+        else:
+            # log-only composite: neutralize the whole line into its (lo, hi) window
+            res = _nudge_dead(b"x" * (strs[i][1] - strs[i][0]), lo, hi)
+        final[i] = res
+        s, e, old_raw = strs[i]
+        assert len(res) == (e - s), "engine.dex: length mismatch for %r" % old_raw
+        buf[s:e] = res
+        print("  dex string: %r -> %r" % (old_raw.decode("ascii", "replace"),
+                                          res.decode("ascii", "replace")))
+    _dex_check_sorted(final)
+    return bytes(buf), len(idxs)
+
+dex, _dead = _make_dead_dex(dex)
 
 def _fix_dex_header(d):
     """Byte patching invalidated the dex header: offset 12 = SHA-1 of bytes [32:],
@@ -646,19 +751,16 @@ def _fix_dex_header(d):
 
 dex = _fix_dex_header(dex)
 open(dex_path, "wb").write(dex)
-print(f"  ok: engine.dex: {hits} server url(s) + access endpoints -> dead (header recomputed)")
+print(f"  ok: engine.dex: {_dead} endpoint strings neutralized (order-safe, header recomputed)")
 
 # keep the loader's embedded dex copy consistent
 m = re.search(r"_DEX_B64 = \"\"\"\n(.*?)\n\"\"\"", t, re.S)
 if m:
     import base64 as _b64
     emb = _b64.b64decode("".join(m.group(1).split()))
-    if emb.count(old_url) == hits and b"/api/v1/access" in emb:
-        new_emb = _fix_dex_header(
-            emb.replace(old_url, new_url)
-            .replace(old_acc_rep, new_acc_rep)
-            .replace(old_acc, new_acc)
-        )
+    if any(tg in emb for tg in (b"http://128.140.65.15:8787", b"/api/v1/access/report", b"/api/v1/access/")):
+        new_emb, _ = _make_dead_dex(emb)
+        new_emb = _fix_dex_header(new_emb)
         nb64 = _b64.b64encode(new_emb).decode("ascii")
         nb64_wrapped = "\n".join(textwrap.wrap(nb64, 100))
         t = t[: m.start()] + '_DEX_B64 = """\n' + nb64_wrapped + '\n"""' + t[m.end():]
@@ -714,6 +816,225 @@ t = patch(
     "loader.py: toast when the core fails to load",
 )
 
+# ---------- [bridge-fix] replaceGift 'parameter type is null' + honest saves ----------
+t = patch(
+    t,
+    "            m = mcache.get((method, sig))\n"
+    "            if m is None:\n"
+    '                tmap = {"int": _INT_T, "long": _LONG_T, "str": _STR_CLS}\n'
+    "                m = clazz.getMethod(method, *[tmap[t] for t in sig])\n"
+    "                mcache[(method, sig)] = m",
+    "            m = mcache.get((method, sig))\n"
+    "            if m is None:\n"
+    "                # [bridge-fix] lazy type resolution: a bridge call can run before the\n"
+    "                # preload window has filled the globals (early hook / settings render).\n"
+    "                # getMethod then received null Classes and threw 'parameter type is\n"
+    "                # null' — and the WRITE was silently dropped.\n"
+    "                global _STR_CLS, _INT_T, _LONG_T\n"
+    "                if _STR_CLS is None:\n"
+    '                    try: _STR_CLS = JavaClass.forName("java.lang.String")\n'
+    "                    except Exception: pass\n"
+    "                if _INT_T is None:\n"
+    "                    try: _INT_T = JInteger.TYPE\n"
+    "                    except Exception: pass\n"
+    "                if _LONG_T is None:\n"
+    "                    try: _LONG_T = JLong.TYPE\n"
+    "                    except Exception: pass\n"
+    '                tmap = {"int": _INT_T, "long": _LONG_T, "str": _STR_CLS}\n'
+    "                _types = []\n"
+    "                for _t in sig:\n"
+    "                    _tc = tmap.get(_t)\n"
+    "                    if _tc is None:\n"
+    '                        raise RuntimeError("bridge type %r unresolved" % (_t,))\n'
+    "                    _types.append(_tc)\n"
+    "                m = clazz.getMethod(method, *_types)\n"
+    "                mcache[(method, sig)] = m",
+    "loader.py: _jvoid lazy bridge types",
+)
+t = patch(
+    t,
+    "        except Exception as e:\n"
+    "            try:\n"
+    '                self.log("OpenChimeraNFT bridge " + method + " err: " + _cause(e))\n'
+    "            except Exception:\n"
+    "                pass\n"
+    "            return None",
+    "        except Exception as e:\n"
+    "            try:\n"
+    "                # [bridge-fix] log each DISTINCT (method, sig) failure once — a core\n"
+    "                # without a method (isOptimizationEnabled in this fork) spammed the log\n"
+    "                # on every settings render while None was the safe answer anyway.\n"
+    '                if "NoSuchMethodException" in _cause(e):\n'
+    '                    _miss = getattr(self, "_jm_missing", None)\n'
+    "                    if _miss is None:\n"
+    "                        _miss = set()\n"
+    '                        self._jm_missing = _miss\n'
+    "                    if (method, sig) in _miss:\n"
+    "                        return None\n"
+    "                    _miss.add((method, sig))\n"
+    '                self.log("OpenChimeraNFT bridge " + method + " err: " + _cause(e))\n'
+    "            except Exception:\n"
+    "                pass\n"
+    "            return None",
+    "loader.py: bridge missing-method logged once",
+)
+t = patch(
+    t,
+    "            # remove-old + add-new in ONE atomic write and ONE re-inject; eid=0 → plain add\n"
+    '            res = self._jvoid("replaceGift", ("long", "str"), (eid, json.dumps(entry)))\n'
+    "            if eid > 0:\n"
+    "                self._ctor_edit_id = 0\n"
+    '            try: self.log("[edit] save edit_id=%s new_uid=%s -> %s" % (eid, uid, str(res)[:70]))\n'
+    "            except Exception: pass\n"
+    '            self._toast("NFT обновлён ✓" if eid > 0 else "NFT сохранён ✓")\n'
+    "            return True",
+    "            # remove-old + add-new in ONE atomic write and ONE re-inject; eid=0 → plain add\n"
+    '            res = self._jvoid("replaceGift", ("long", "str"), (eid, json.dumps(entry)))\n'
+    "            if eid > 0:\n"
+    "                self._ctor_edit_id = 0\n"
+    "            # [nosave-fix] honest result: a dropped bridge write must not be announced\n"
+    "            # as «сохранено». Fallback: the same entry through addGifts; only if THAT\n"
+    "            # fails too, report failure.\n"
+    "            ok, text = self._bridge_ok(res)\n"
+    "            if not ok:\n"
+    "                try:\n"
+    '                    res = self._jvoid("addGifts", ("str",), (json.dumps([entry]),))\n'
+    "                except Exception as add_error:\n"
+    "                    res = None\n"
+    "                    text = _cause(add_error)\n"
+    "                if res is None:\n"
+    "                    ok = False\n"
+    "                else:\n"
+    "                    _s = str(res)\n"
+    "                    _low = _s.lower()\n"
+    '                    ok = not any(mk in _low for mk in ("fail", "fatal", "not initialized", "blocked", "exception"))\n'
+    "                    text = _s[:120]\n"
+    '            try: self.log("[edit] save edit_id=%s new_uid=%s -> %s" % (eid, uid, str(res)[:70]))\n'
+    "            except Exception: pass\n"
+    "            if not ok:\n"
+    '                self._toast("не сохранено: " + (text or "ядро не ответило")[:70])\n'
+    "                return False\n"
+    '            self._toast("NFT обновлён ✓" if eid > 0 else "NFT сохранён ✓")\n'
+    "            return True",
+    "loader.py: honest constructor save + addGifts fallback",
+)
+t = patch(
+    t,
+    "    @staticmethod\n    def _bridge_ok(raw):",
+    "    def _core_reveal_sent(self, b64, dialog_id, comment=\"\"):\n"
+    "        \"\"\"[market-visual] Draw the gift message in the chat via the core.\n"
+    "\n"
+    "        deliverGiftBatch only QUEUES outbox events; the visual gift message used\n"
+    "        to be produced by the sync round-trip (server merge -> poll ->\n"
+    "        applyTransfer -> GiftReveal). With the author server dead that chain\n"
+    "        never fired: the cart closed, the toast said the gifts were on their\n"
+    "        way, and nothing appeared anywhere. The core already carries the whole\n"
+    "        local renderer - GiftReveal.showSent, the same method the native gift\n"
+    "        sheet drives (b64 -> TL_messageActionStarGift service message ->\n"
+    "        MessagesStorage.putMessages + MessagesController.updateInterfaceWithMessages\n"
+    "        + confetti) - so drive it directly, once per delivered row.\n"
+    "        \"\"\"\n"
+    "        try:\n"
+    "            if not b64 or jclass is None:\n"
+    "                return False\n"
+    "            main_cls = JavaClass.forName(\"com.chimeranft.core.Main\")\n"
+    "            main_inst = main_cls.getMethod(\"getInstance\").invoke(None)\n"
+    "            if main_inst is None:\n"
+    "                _diag(\"[reveal] core Main not initialized\")\n"
+    "                return False\n"
+    "            reveal = main_cls.getMethod(\n"
+    "                \"access$getGiftReveal$p\", main_cls).invoke(None, main_inst)\n"
+    "            if reveal is None:\n"
+    "                _diag(\"[reveal] core reveal is null\")\n"
+    "                return False\n"
+    "            from java.lang import Boolean as JBoolean\n"
+    "            m = reveal.getClass().getMethod(\n"
+    "                \"showSent\", JavaClass.forName(\"java.lang.String\"), JLong.TYPE,\n"
+    "                JavaClass.forName(\"java.lang.String\"),\n"
+    "                JBoolean.TYPE, JBoolean.TYPE)\n"
+    "            m.invoke(reveal, str(b64), JLong(int(dialog_id)),\n"
+    "                     \"\" if comment is None else str(comment),\n"
+    "                     JBoolean(True), JBoolean(True))\n"
+    "            return True\n"
+    "        except Exception as e:\n"
+    "            try: _diag(\"[reveal] showSent err: \" + _cause(e))\n"
+    "            except Exception: pass\n"
+    "            return False\n"
+    "\n"
+    "    @staticmethod\n    def _bridge_ok(raw):",
+    "loader.py: core reveal driver for local visual send",
+)
+t = patch(
+    t,
+    "                rows = []\n"
+    "                for _slug, gift, title in list(self._market_cart):\n"
+    "                    tpl = self._regular_entry_template(gift, title)\n"
+    "                    if tpl is not None:\n"
+    "                        rows.append({\"b64\": tpl[\"b64\"], \"title\": title, \"unique\": True})\n",
+    "                rows = []\n"
+    "                sent_b64 = []\n"
+    "                for _slug, gift, title in list(self._market_cart):\n"
+    "                    tpl = self._regular_entry_template(gift, title)\n"
+    "                    if tpl is not None:\n"
+    "                        rows.append({\"b64\": tpl[\"b64\"], \"title\": title, \"unique\": True})\n"
+    "                        sent_b64.append((tpl[\"b64\"], title))\n",
+    "loader.py: market cart keeps row b64 list for local reveal",
+)
+t = patch(
+    t,
+    "                self._market_cart = []\n"
+    "                self._market_cart_mode = False\n"
+    "                self._hap(\"reveal\", essential=True)\n"
+    "                try: sheet_ref[0].dismiss()\n"
+    "                except Exception: pass\n"
+    "                self._toast(\"Подарки отправляются · %d\" % len(rows))\n",
+    "                self._market_cart = []\n"
+    "                self._market_cart_mode = False\n"
+    "                self._hap(\"reveal\", essential=True)\n"
+    "                # [market-visual] the queued outbox cannot render anything without\n"
+    "                # the author server - fire the core's local reveal for every row so\n"
+    "                # the gift message actually appears in the chat (the same path the\n"
+    "                # native gift sheet uses).\n"
+    "                _revealed = 0\n"
+    "                for _b64, _title in sent_b64:\n"
+    "                    try:\n"
+    "                        if self._core_reveal_sent(_b64, to_uid, \"\"):\n"
+    "                            _revealed += 1\n"
+    "                    except Exception:\n"
+    "                        pass\n"
+    "                try: self.log(\"[market-cart] reveal sent: %d/%d\" % (_revealed, len(sent_b64)))\n"
+    "                except Exception: pass\n"
+    "                try: sheet_ref[0].dismiss()\n"
+    "                except Exception: pass\n"
+    "                self._toast(\"Подарки отправлены · %d\" % _revealed)\n",
+    "loader.py: market cart fires local reveal after ok",
+)
+
+t = patch(
+    t,
+    "    def _tapped(self, name, fn):",
+    "    def _open_source_page(self):\n"
+    "        \"\"\"«Исходный код» — open the GitHub repo (in-app browser, clipboard fallback).\"\"\"\n"
+    "        url = \"https://github.com/m4rker20-rgb/OpenChimeraNFT\"\n"
+    "        try:\n"
+    "            frag = get_last_fragment()\n"
+    "            ctx = frag.getParentActivity() if frag else None\n"
+    "            if ctx is not None:\n"
+    "                Browser = jclass(\"org.telegram.messenger.browser.Browser\")\n"
+    "                if Browser is not None:\n"
+    "                    Browser.openUrl(ctx, url)\n"
+    "                    return\n"
+    "        except Exception:\n"
+    "            pass\n"
+    "        try:\n"
+    "            AndroidUtilities.addToClipboard(url)\n"
+    "            self._toast(\"Ссылка скопирована: \" + url)\n"
+    "        except Exception:\n"
+    "            self._toast(url)\n"
+    "\n"
+    "    def _tapped(self, name, fn):",
+    "loader.py: _open_source_page method",
+)
 # ---------- [diag] on-device save diagnostics: <data>/diag.log + settings row ----------
 t = patch(
     t,
@@ -800,14 +1121,88 @@ t = patch(
 t = patch(
     t,
     '__version__ = "1.0.0"',
-    '__version__ = "1.2.0"',
+    '__version__ = "1.2.3"',
     "loader.py: __version__ 1.2.0",
 )
 t = patch(
     t,
     '_LOADER_VERSION = "1.0.0"',
-    '_LOADER_VERSION = "1.2.0"',
+    '_LOADER_VERSION = "1.2.3"',
     "loader.py: _LOADER_VERSION 1.2.0",
+)
+# Диагностика row in the NATIVE settings list (the screen the user actually opens)
+t = patch(
+    t,
+    '            Text(text=S("menu_about"), subtext=S("menu_about_sub", _LOADER_VERSION),\n'
+    '                 icon="msg2_reactions2",\n'
+    '                 on_click=self._tapped("open", self._open_about), link_alias="about"),\n'
+    "        ]",
+    '            Text(text=S("menu_about"), subtext=S("menu_about_sub", _LOADER_VERSION),\n'
+    '                 icon="msg2_reactions2",\n'
+    '                 on_click=self._tapped("open", self._open_about), link_alias="about"),\n'
+    '            Text(text="Диагностика",\n'
+    '                 subtext="скопировать лог сохранения в буфер обмена",\n'
+    '                 icon="msg_info",\n'
+    '                 on_click=self._tapped("open", self._copy_diag_log),\n'
+    '                 link_alias="diag"),\n'
+    "        ]",
+    "loader.py: diagnostics row in native settings",
+)
+# «Исходный код» row — anchored AFTER the Диагностика row (that patch runs first and
+# owns the about-row anchor), so the settings list ends: …О плагине, Диагностика, Исходный код.
+t = patch(
+    t,
+    '            Text(text="Диагностика",\n'
+    '                 subtext="скопировать лог сохранения в буфер обмена",\n'
+    '                 icon="msg_info",\n'
+    '                 on_click=self._tapped("open", self._copy_diag_log),\n'
+    '                 link_alias="diag"),\n'
+    "        ]",
+    '            Text(text="Диагностика",\n'
+    '                 subtext="скопировать лог сохранения в буфер обмена",\n'
+    '                 icon="msg_info",\n'
+    '                 on_click=self._tapped("open", self._copy_diag_log),\n'
+    '                 link_alias="diag"),\n'
+    "            # «Исходный код» — the repo lives on GitHub; the runtime settings\n"
+    "            # screen already carries the same button, the native screen did not.\n"
+    "            Text(text=\"Исходный код\",\n"
+    "                 subtext=\"GitHub — m4rker20-rgb/OpenChimeraNFT\",\n"
+    "                 icon=\"msg_share\",\n"
+    "                 on_click=self._tapped(\"open\", self._open_source_page),\n"
+    "                 link_alias=\"src\"),\n"
+    "        ]",
+    "loader.py: source-code row in native settings",
+)
+t = patch(
+    t,
+    "    def _tapped(self, name, fn):",
+    "    def _copy_diag_log(self):\n"
+    "        try:\n"
+    '            p = os.path.join(_resolve_data_dir(), "diag.log")\n'
+    '            raw = ""\n'
+    "            if os.path.exists(p):\n"
+    '                with open(p, "r", encoding="utf-8", errors="replace") as fh:\n'
+    "                    raw = fh.read()\n"
+    "            tail = raw.splitlines()[-400:]\n"
+    '            text = "\\n".join(tail) if tail else "(лог пуст)"\n'
+    "            try:\n"
+    "                AndroidUtilities.addToClipboard(text)\n"
+    "            except Exception:\n"
+    "                try:\n"
+    "                    from android.content import ClipData as _ClipData\n"
+    "                    from android.content import Context as _Context\n"
+    "                    _cm = ApplicationLoader.applicationContext.getSystemService(\n"
+    "                        _Context.CLIPBOARD_SERVICE)\n"
+    '                    _cm.setPrimaryClip(_ClipData.newPlainText("diag", text))\n'
+    "                except Exception:\n"
+    "                    pass\n"
+    '            self._toast("Диагностика: скопировано %d строк" % len(tail))\n'
+    '            _diag("diag copied to clipboard (%d lines)" % len(tail))\n'
+    "        except Exception as e:\n"
+    '            self._toast("Диагностика: " + _cause(e))\n'
+    "\n"
+    "    def _tapped(self, name, fn):",
+    "loader.py: _copy_diag_log method",
 )
 wr(lp, t)
 
@@ -884,14 +1279,14 @@ meta_new = (
     "name: OpenChimeraNFT\n"
     "description: '{description}'\n"
     "id: chimeranft\n"
-    "version: 1.2.0\n"
+    "version: 1.2.3\n"
     "author: '@Coder_Minecraft'\n"
     "app_version: '>=11.9.0'\n"
     "sdk_version: '>=1.4.4.6'\n"
     "icon: HappyHappyPepe/31\n"
     "elyxbuilder:\n"
     "  compiled: true\n"
-    "  buildNum: 7\n"
+    "  buildNum: 10\n"
     "  buildDate: '2026-08-31'\n"
     "  pythonVer: '3.11'\n"
     f"  sourceHash: {loader_sha}\n"
@@ -961,8 +1356,15 @@ decoded = base64.b64decode("".join(b.group(1).split()))
 assert hashlib.sha256(decoded).hexdigest() == rp_sha, "embedded b64 mismatch"
 assert "128.140.65.15" not in ld, "server url remains in loader"
 assert b"128.140.65.15" not in dex2, "server url remains in engine.dex"
-assert dex2.count(b"http://0.0.0.0:8787/00000") == hits, "dex patch count mismatch"
 assert b"/api/v1/access" not in dex2, "dex access endpoint remains"
+# the shipped dex must still verify: header checksums + sorted string table
+_stored_cs, = struct.unpack_from("<I", dex2, 8)
+assert _stored_cs == (zlib.adler32(dex2[12:]) & 0xFFFFFFFF), "dex adler32 stale"
+assert dex2[12:32] == hashlib.sha1(dex2[32:]).digest(), "dex sha1 stale"
+_dex2_strings = [txt for (_, _, txt) in _dex_strings(dex2)]
+assert all(_dex2_strings[i - 1] <= _dex2_strings[i] for i in range(1, len(_dex2_strings))), (
+    "dex string table out of order"
+)
 assert b"plugin_access.json.core.bak" in dex2, "dex marker filenames must survive (self-heal purge)"
 # embedded dex copy must match the file dex
 de = re.search(r'_DEX_B64 = """\n(.*?)\n"""', ld, re.S)
