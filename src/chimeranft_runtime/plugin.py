@@ -77,7 +77,7 @@ __id__ = "eblannft"
 __name__ = "OpenChimeraNFT"
 __description__ = "OpenChimeraNFT (бывший Chimera NFT) — NFT-подарки и оформление профиля. Локальная сборка: без серверов, синхронизации и автообновлений."
 __author__ = "@xarmaq"
-__version__ = "1.0.0"
+__version__ = "1.2.0"
 __icon__ = "HappyHappyPepe/31"
 CHIMERANFT_SUPPORT_CACHE_DIR = os.path.expanduser("~/.chimeranft_cache")
 #: Pre-rename cache dir. Regenerable, so nothing migrates out of it — it is only kept
@@ -125,6 +125,25 @@ _VERBOSE_LOG = False
 def _log(msg):
     if _VERBOSE_LOG:
         logcat(f"[NFT_ARCH] {msg}")
+
+
+_DIAG2_LOCK = None
+
+
+def _diag2(msg):
+    """Append to <plugins>/eblannft_data/diag.log (same file the loader writes)."""
+    global _DIAG2_LOCK
+    try:
+        import threading as _th
+        if _DIAG2_LOCK is None:
+            _DIAG2_LOCK = _th.Lock()
+        import datetime as _dt
+        line = _dt.datetime.now().strftime("%m-%d %H:%M:%S") + " [rt] " + str(msg) + "\n"
+        with _DIAG2_LOCK:
+            with open(os.path.join(_cache_dir(), "diag.log"), "a", encoding="utf-8") as _fh:
+                _fh.write(line)
+    except Exception:
+        pass
 
 # ── Device diagnostics: OFF in a shipping build ──────────────────────────
 #
@@ -2420,6 +2439,10 @@ class NftClonerPlugin(BasePlugin):
             _log(f"Native catalog hooks installed: {hooked}")
 
     def on_plugin_load(self):
+        try:
+            _diag2("=== runtime load v" + __version__ + " gifts=" + str(len(self.gift_library or [])))
+        except Exception:
+            pass
         try:
             self._plugin_unloading = False
             self.add_menu_item(
@@ -14792,6 +14815,24 @@ class NftClonerPlugin(BasePlugin):
     def _state_full_text(self, enabled):
         return "\u0432\u043a\u043b\u044e\u0447\u0435\u043d\u043e" if bool(enabled) else "\u0432\u044b\u043a\u043b\u044e\u0447\u0435\u043d\u043e"
 
+    def _copy_diag_log(self):
+        try:
+            p = os.path.join(_cache_dir(), "diag.log")
+            raw = ""
+            if os.path.exists(p):
+                with open(p, "r", encoding="utf-8", errors="replace") as _fh:
+                    raw = _fh.read()
+            tail = raw.splitlines()[-400:]
+            text = "\n".join(tail) if tail else "(лог пуст)"
+            AndroidUtilities.addToClipboard(text)
+            BulletinHelper.show_success("Диагностика: скопировано %d строк" % len(tail))
+            try:
+                _diag2("diag copied to clipboard (%d lines)" % len(tail))
+            except Exception:
+                pass
+        except Exception as e:
+            BulletinHelper.show_error(f"Диагностика: {e}")
+
     def create_settings(self):
         try:
             if not bool(self.get_setting("chimeranft_first_welcome_done", False)):
@@ -14834,6 +14875,12 @@ class NftClonerPlugin(BasePlugin):
                 icon="msg_retry",
                 create_sub_fragment=self._create_service_settings_subfragment,
                 link_alias="chimeranft_service_subfragment",
+            ),
+            Text(
+                text="Диагностика",
+                subtext="скопировать лог сохранения в буфер обмена",
+                icon="msg_share",
+                on_click=lambda _: self._copy_diag_log(),
             ),
         ]
 
@@ -15511,6 +15558,10 @@ class NftClonerPlugin(BasePlugin):
             except Exception:
                 pass
             try:
+                try:
+                    _diag2("my-gifts edit: saved (gift_library=%d)" % len(self.gift_library or []))
+                except Exception:
+                    pass
                 BulletinHelper.show_success("Сохранено")
             except:
                 pass
@@ -17972,6 +18023,10 @@ class NftClonerPlugin(BasePlugin):
             write_file(path, payload)
 
     def _drain_cache_writes(self):
+        try:
+            _diag2("drain: pending=%s dirty=%s" % (getattr(self, "_cache_pending", None) is not None, getattr(self, "_library_dirty", False)))
+        except Exception:
+            pass
         """Flush the pending cache snapshot(s) to disk.
 
         Runs either on the background executor (the debounced save path) or
@@ -18054,6 +18109,10 @@ class NftClonerPlugin(BasePlugin):
             _log(f"Cache save error: {e}")
 
     def _flush_cache_now(self, reason=""):
+        try:
+            _diag2("flush(" + str(reason) + ")")
+        except Exception:
+            pass
         """Persist the latest cache snapshot to disk SYNCHRONOUSLY on the
         current thread, bypassing the debounced background executor.
 
@@ -20290,11 +20349,19 @@ class NftClonerPlugin(BasePlugin):
                             self._load_cache()
                         except Exception:
                             pass
+                        try:
+                            _diag2("copy-flow: bridge addGifts -> " + result[:200])
+                        except Exception:
+                            pass
                         logcat("[NFT_COPY] Elyx addGifts: %s" % result)
                     except Exception as bridge_error:
                         logcat("[NFT_COPY] Elyx bridge failed, cache fallback: %s" % bridge_error)
                         bridge = None
                 if not callable(bridge):
+                    try:
+                        _diag2("copy-flow: PYTHON FALLBACK for %d gift(s)" % len(prepared))
+                    except Exception:
+                        pass
                     for copied, wrapper in prepared:
                         fp = str(copied.get("copied_from_fingerprint", "") or "")
                         if fp and any(str(e.get("copied_from_fingerprint", "") or "") == fp for e in (self.gift_library or []) if isinstance(e, dict)):
@@ -23776,6 +23843,10 @@ class NftClonerPlugin(BasePlugin):
         if not key:
             BulletinHelper.show_error("Не удалось добавить подарок в OpenChimeraNFT")
             return False
+        try:
+            _diag2("sheet add: imported to library (key=%s)" % str(key))
+        except Exception:
+            pass
         BulletinHelper.show_success("Подарок добавлен в OpenChimeraNFT")
         return True
 

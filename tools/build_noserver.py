@@ -218,6 +218,158 @@ pt = patch(
     '                            raise RuntimeError(result or "bridge returned no result")',
     "plugin.py: copy-flow detects dead bridge",
 )
+# [diag] file logger in the runtime + explicit save-path markers
+pt = patch(
+    pt,
+    "def _log(msg):\n"
+    "    if _VERBOSE_LOG:\n"
+    '        logcat(f"[NFT_ARCH] {msg}")',
+    "def _log(msg):\n"
+    "    if _VERBOSE_LOG:\n"
+    '        logcat(f"[NFT_ARCH] {msg}")\n'
+    "\n"
+    "\n"
+    "_DIAG2_LOCK = None\n"
+    "\n"
+    "\n"
+    "def _diag2(msg):\n"
+    '    """Append to <plugins>/eblannft_data/diag.log (same file the loader writes)."""\n'
+    "    global _DIAG2_LOCK\n"
+    "    try:\n"
+    "        import threading as _th\n"
+    "        if _DIAG2_LOCK is None:\n"
+    "            _DIAG2_LOCK = _th.Lock()\n"
+    "        import datetime as _dt\n"
+    '        line = _dt.datetime.now().strftime("%m-%d %H:%M:%S") + " [rt] " + str(msg) + "\\n"\n'
+    "        with _DIAG2_LOCK:\n"
+    '            with open(os.path.join(_cache_dir(), "diag.log"), "a", encoding="utf-8") as _fh:\n'
+    "                _fh.write(line)\n"
+    "    except Exception:\n"
+    "        pass",
+    "plugin.py: diag2 file logger",
+)
+pt = patch(
+    pt,
+    "    def on_plugin_load(self):\n"
+    "        try:\n"
+    "            self._plugin_unloading = False",
+    "    def on_plugin_load(self):\n"
+    "        try:\n"
+    '            _diag2("=== runtime load v" + __version__ + " gifts=" + str(len(self.gift_library or [])))\n'
+    "        except Exception:\n"
+    "            pass\n"
+    "        try:\n"
+    "            self._plugin_unloading = False",
+    "plugin.py: runtime load diag",
+)
+pt = patch(
+    pt,
+    "    def _drain_cache_writes(self):",
+    "    def _drain_cache_writes(self):\n"
+    "        try:\n"
+    '            _diag2("drain: pending=%s dirty=%s" % (getattr(self, "_cache_pending", None) is not None, getattr(self, "_library_dirty", False)))\n'
+    "        except Exception:\n"
+    "            pass",
+    "plugin.py: drain diag",
+)
+pt = patch(
+    pt,
+    "    def _flush_cache_now(self, reason=\"\"):",
+    "    def _flush_cache_now(self, reason=\"\"):\n"
+    "        try:\n"
+    '            _diag2("flush(" + str(reason) + ")")\n'
+    "        except Exception:\n"
+    "            pass",
+    "plugin.py: flush diag",
+)
+pt = patch(
+    pt,
+    "                if not callable(bridge):\n"
+    "                    for copied, wrapper in prepared:",
+    "                if not callable(bridge):\n"
+    "                    try:\n"
+    '                        _diag2("copy-flow: PYTHON FALLBACK for %d gift(s)" % len(prepared))\n'
+    "                    except Exception:\n"
+    "                        pass\n"
+    "                    for copied, wrapper in prepared:",
+    "plugin.py: copy fallback diag",
+)
+pt = patch(
+    pt,
+    '                        logcat("[NFT_COPY] Elyx addGifts: %s" % result)',
+    "                        try:\n"
+    '                            _diag2("copy-flow: bridge addGifts -> " + result[:200])\n'
+    "                        except Exception:\n"
+    "                            pass\n"
+    '                        logcat("[NFT_COPY] Elyx addGifts: %s" % result)',
+    "plugin.py: copy bridge diag",
+)
+pt = patch(
+    pt,
+    '                BulletinHelper.show_success("Сохранено")',
+    "                try:\n"
+    '                    _diag2("my-gifts edit: saved (gift_library=%d)" % len(self.gift_library or []))\n'
+    "                except Exception:\n"
+    "                    pass\n"
+    '                BulletinHelper.show_success("Сохранено")',
+    "plugin.py: my-gifts save diag",
+)
+pt = patch(
+    pt,
+    '        BulletinHelper.show_success("Подарок добавлен в OpenChimeraNFT")',
+    "        try:\n"
+    '            _diag2("sheet add: imported to library (key=%s)" % str(key))\n'
+    "        except Exception:\n"
+    "            pass\n"
+    '        BulletinHelper.show_success("Подарок добавлен в OpenChimeraNFT")',
+    "plugin.py: sheet add diag",
+)
+pt = patch(
+    pt,
+    "    def create_settings(self):",
+    "    def _copy_diag_log(self):\n"
+    "        try:\n"
+    '            p = os.path.join(_cache_dir(), "diag.log")\n'
+    '            raw = ""\n'
+    "            if os.path.exists(p):\n"
+    '                with open(p, "r", encoding="utf-8", errors="replace") as _fh:\n'
+    "                    raw = _fh.read()\n"
+    "            tail = raw.splitlines()[-400:]\n"
+    '            text = "\\n".join(tail) if tail else "(лог пуст)"\n'
+    "            AndroidUtilities.addToClipboard(text)\n"
+    '            BulletinHelper.show_success("Диагностика: скопировано %d строк" % len(tail))\n'
+    "            try:\n"
+    '                _diag2("diag copied to clipboard (%d lines)" % len(tail))\n'
+    "            except Exception:\n"
+    "                pass\n"
+    "        except Exception as e:\n"
+    '            BulletinHelper.show_error(f"Диагностика: {e}")\n'
+    "\n"
+    "    def create_settings(self):",
+    "plugin.py: _copy_diag_log method",
+)
+pt = patch(
+    pt,
+    '                link_alias="chimeranft_service_subfragment",\n'
+    "            ),\n"
+    "        ]",
+    '                link_alias="chimeranft_service_subfragment",\n'
+    "            ),\n"
+    "            Text(\n"
+    '                text="Диагностика",\n'
+    '                subtext="скопировать лог сохранения в буфер обмена",\n'
+    '                icon="msg_share",\n'
+    "                on_click=lambda _: self._copy_diag_log(),\n"
+    "            ),\n"
+    "        ]",
+    "plugin.py: diagnostics settings row",
+)
+pt = patch(
+    pt,
+    '__version__ = "1.0.0"',
+    '__version__ = "1.2.0"',
+    "plugin.py: __version__ 1.2.0",
+)
 wr(pp, pt)
 
 # ---------- 2. rebuild runtime_payload.zip ----------
@@ -406,6 +558,10 @@ t = patch(
     "        # only persistence path left.\n"
     "        _probe = self._jvoid(\"mergeState\", (\"str\",), (\"{}\",))\n"
     "        _probe_s = \"\" if _probe is None else str(_probe)\n"
+    "        try:\n"
+    "            _diag(\"[store] single-writer probe -> \" + _probe_s[:120])\n"
+    "        except Exception:\n"
+    "            pass\n"
     "        if self._clazz is None or _probe is None or \"(not initialized)\" in _probe_s or _probe_s.startswith(\"FAIL\"):\n"
     "            self.log(\"[store] bridge unavailable (probe: \" + _probe_s + \") — runtime keeps its cache writers\")\n"
     "            return",
@@ -557,6 +713,102 @@ t = patch(
     "                pass",
     "loader.py: toast when the core fails to load",
 )
+
+# ---------- [diag] on-device save diagnostics: <data>/diag.log + settings row ----------
+t = patch(
+    t,
+    '    new_dir = os.path.join(base, "eblannft_data")\n'
+    "    return new_dir",
+    '    new_dir = os.path.join(base, "eblannft_data")\n'
+    "    return new_dir\n"
+    "\n"
+    "\n"
+    "_DIAG_LOCK = None\n"
+    "\n"
+    "\n"
+    "def _diag(msg):\n"
+    '    """Append a timestamped line to <data>/diag.log — on-device save diagnostics."""\n'
+    "    global _DIAG_LOCK\n"
+    "    try:\n"
+    "        import threading as _th\n"
+    "        if _DIAG_LOCK is None:\n"
+    "            _DIAG_LOCK = _th.Lock()\n"
+    "        import datetime as _dt\n"
+    '        line = _dt.datetime.now().strftime("%m-%d %H:%M:%S") + " " + str(msg) + "\\n"\n'
+    "        with _DIAG_LOCK:\n"
+    '            with open(os.path.join(_resolve_data_dir(), "diag.log"), "a", encoding="utf-8") as _fh:\n'
+    "                _fh.write(line)\n"
+    "    except Exception:\n"
+    "        pass",
+    "loader.py: diag file logger",
+)
+t = patch(
+    t,
+    "    def on_plugin_load(self):\n"
+    "        global _STR_CLS, _INT_T, _LONG_T, __version__\n"
+    "        self._unloaded = False\n"
+    "        self._access_denied = False",
+    "    def on_plugin_load(self):\n"
+    "        # [diag] mirror every framework log line into <data>/diag.log\n"
+    "        try:\n"
+    "            _base_log = self.log\n"
+    "\n"
+    "            def _file_log(msg, _bl=_base_log):\n"
+    "                try:\n"
+    "                    _diag(msg)\n"
+    "                except Exception:\n"
+    "                    pass\n"
+    "                _bl(msg)\n"
+    "\n"
+    "            self.log = _file_log\n"
+    "        except Exception:\n"
+    "            pass\n"
+    "        try:\n"
+    '            _diag("=== on_plugin_load v" + __version__)\n'
+    "        except Exception:\n"
+    "            pass",
+    "loader.py: mirror log into diag file",
+)
+t = patch(
+    t,
+    "            res = m.invoke(None, *jargs)\n"
+    "            if method in self._GIFT_MUTATORS:",
+    "            res = m.invoke(None, *jargs)\n"
+    '            if method in ("addGifts", "mergeState", "updateGifts", "updateGift",\n'
+    '                          "removeGifts", "removeGift", "replaceGift", "craftGifts",\n'
+    '                          "deliverGiftBatch", "pushSyncNow", "reloadAll"):\n'
+    '                _diag("[bridge] " + method + " -> " + str(res)[:200])\n'
+    "            if method in self._GIFT_MUTATORS:",
+    "loader.py: bridge mutator results to diag",
+)
+t = patch(
+    t,
+    "            try:\n"
+    "                prod._load_cache()\n"
+    "            except Exception as e:\n"
+    '                self.log("[cat] _load_cache: " + repr(e))',
+    "            try:\n"
+    "                prod._load_cache()\n"
+    "            except Exception as e:\n"
+    '                self.log("[cat] _load_cache: " + repr(e))\n'
+    "            try:\n"
+    '                _diag("[prod] prod ready, gift_library=%d" % len(getattr(prod, "gift_library", []) or []))\n'
+    "            except Exception:\n"
+    "                pass",
+    "loader.py: prod ready diag",
+)
+t = patch(
+    t,
+    '__version__ = "1.0.0"',
+    '__version__ = "1.2.0"',
+    "loader.py: __version__ 1.2.0",
+)
+t = patch(
+    t,
+    '_LOADER_VERSION = "1.0.0"',
+    '_LOADER_VERSION = "1.2.0"',
+    "loader.py: _LOADER_VERSION 1.2.0",
+)
 wr(lp, t)
 
 # ---------- 4. verify no server refs remain ----------
@@ -632,14 +884,14 @@ meta_new = (
     "name: OpenChimeraNFT\n"
     "description: '{description}'\n"
     "id: chimeranft\n"
-    "version: 1.1.1\n"
+    "version: 1.2.0\n"
     "author: '@Coder_Minecraft'\n"
     "app_version: '>=11.9.0'\n"
     "sdk_version: '>=1.4.4.6'\n"
     "icon: HappyHappyPepe/31\n"
     "elyxbuilder:\n"
     "  compiled: true\n"
-    "  buildNum: 6\n"
+    "  buildNum: 7\n"
     "  buildDate: '2026-08-31'\n"
     "  pythonVer: '3.11'\n"
     f"  sourceHash: {loader_sha}\n"
