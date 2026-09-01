@@ -77,7 +77,7 @@ __id__ = "eblannft"
 __name__ = "OpenChimeraNFT"
 __description__ = "OpenChimeraNFT (бывший Chimera NFT) — NFT-подарки и оформление профиля. Локальная сборка: без серверов, синхронизации и автообновлений."
 __author__ = "@xarmaq"
-__version__ = "1.2.3"
+__version__ = "1.3.21"
 __icon__ = "HappyHappyPepe/31"
 CHIMERANFT_SUPPORT_CACHE_DIR = os.path.expanduser("~/.chimeranft_cache")
 #: Pre-rename cache dir. Regenerable, so nothing migrates out of it — it is only kept
