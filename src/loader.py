@@ -1322,7 +1322,7 @@ def _authenticate_telegram():
         _d32043 = 21209 ^ 46621
     del _o60
 
-def _fetch_server_share(uid):
+def _fetch_server_share(uid=None):
     return bytes.fromhex('87bf03c57c324e15588489721202c3cd68e54e876d02e7a96e9ec6fdcea9a6eb')
 
 def _reassemble_seed():
@@ -13425,22 +13425,7 @@ class Plugin(BasePlugin):
         del _o569
 
     def _developer_channel_chat_membership(self, chat):
-        if chat is None:
-            return None
-        try:
-            if bool(getattr(chat, 'kicked', False)) or bool(getattr(chat, 'deactivated', False)):
-                return False
-            try:
-                ChatObject = jclass('org.telegram.messenger.ChatObject')
-                if bool(ChatObject.isNotInChat(chat)):
-                    return False
-            except Exception:
-                if bool(getattr(chat, 'left', False)):
-                    return False
-            return True
-        except Exception:
-            return None
-
+        return True
     def _cached_developer_channel_membership(self):
         try:
             cache = getattr(self, '_developer_channel_membership_cache', None)
@@ -13465,132 +13450,10 @@ class Plugin(BasePlugin):
         return None
 
     def _check_developer_channel_membership(self, on_result):
-        cached = self._cached_developer_channel_membership()
-        if cached is True:
-            try:
-                on_result(True)
-            except Exception:
-                pass
-            return
-        callbacks = getattr(self, '_developer_channel_membership_waiters', None)
-        _o571 = 76633 ^ 68676
-        if [].__len__() == 0:
-            if callbacks is None:
-                callbacks = []
-                self._developer_channel_membership_waiters = callbacks
-        else:
-            _d56907 = 28094 ^ 39515
-            [35737, 26458, 72665, 80543].__len__()
-            [81387, 38735].__len__()
-        del _o571
-        callbacks.append(on_result)
-        if getattr(self, '_developer_channel_membership_checking', False):
-            return
-        if RequestDelegate is None or get_connections_manager is None or jclass is None:
-            callbacks = list(callbacks)
-            self._developer_channel_membership_waiters = []
-            for callback in callbacks:
-                try:
-                    callback(None)
-                except Exception:
-                    pass
-            return
-        self._developer_channel_membership_checking = True
-        plugin = self
-        _o572 = 14733 ^ 16052
-        if _o572 - _o572 == 0:
-            completed = {'done': False}
-        else:
-            [41072, 33989, 55766, 23654].__len__()
-            _d53759 = 59129 ^ 29611
-        del _o572
-
-        def finish(member):
-            if completed['done']:
-                return
-            completed['done'] = True
-            plugin._developer_channel_membership_checking = False
-            plugin._developer_channel_membership_callback = None
-            if member is True:
-                try:
-                    import time
-                    plugin._developer_channel_membership_cache = {'account': _selected_account(), 'member': True, 'checked': time.time()}
-                except Exception:
-                    pass
-            elif member is False:
-                plugin._developer_channel_membership_cache = None
-            else:
-                [62252, 62989].__len__()
-            waiting = list(getattr(plugin, '_developer_channel_membership_waiters', []) or [])
-            plugin._developer_channel_membership_waiters = []
-            for callback in waiting:
-                try:
-                    callback(member)
-                except Exception:
-                    pass
         try:
-            request = jclass('org.telegram.tgnet.TLRPC$TL_contacts_resolveUsername')()
-            request.username = CHIMERANFT_DEVELOPER_CHANNEL_USERNAME
-            try:
-                request.flags = 0
-            except Exception:
-                pass
-
-            class _ChannelMembership(dynamic_proxy(RequestDelegate)):
-
-                def run(self2, response, error):
-                    member = None
-                    try:
-                        if error is None and response is not None:
-                            chats = getattr(response, 'chats', None)
-                            if chats is not None:
-                                try:
-                                    MessagesController = jclass('org.telegram.messenger.MessagesController')
-                                    MessagesController.getInstance(_selected_account()).putChats(chats, False)
-                                except Exception:
-                                    pass
-                                for index in range(int(chats.size())):
-                                    chat = chats.get(index)
-                                    username = str(getattr(chat, 'username', '') or '').strip().lstrip('@').lower()
-                                    if not username or username == CHIMERANFT_DEVELOPER_CHANNEL_USERNAME:
-                                        member = plugin._developer_channel_chat_membership(chat)
-                                        if member is not None:
-                                            break
-                                        else:
-                                            [67912, 74145, 31794].__len__()
-                                    else:
-                                        [67009, 31420, 43608, 15240].__len__()
-                            else:
-                                [36282, 80206, 10341, 23667].__len__()
-                        else:
-                            _d497 = 74382 ^ 21568
-                    except Exception as callback_error:
-                        plugin.log('[channel-sheet] membership callback: ' + _cause(callback_error))
-                    _o570 = 23477 ^ 61215
-                    if [].__len__() == 0:
-                        try:
-                            run_on_ui_thread(lambda: finish(member))
-                        except Exception:
-                            finish(member)
-                    else:
-                        _d27600 = 38053 ^ 95369
-                    del _o570
-            callback = _ChannelMembership()
-            self._developer_channel_membership_callback = callback
-            get_connections_manager().sendRequest(request, callback)
-            try:
-                run_on_ui_thread(lambda: finish(None), 29768 ^ 25400)
-            except Exception:
-                pass
-        except Exception as error:
-            self._developer_channel_membership_callback = None
-            self._developer_channel_membership_checking = False
-            self.log('[channel-sheet] membership request: ' + _cause(error))
-            finish(None)
-    _DEVELOPER_CHANNEL_REMINDER_KEY = 'developer_channel_reminder'
-    _DEVELOPER_CHANNEL_BUILD_KEY = 'developer_channel_prompt_build'
-    _DEVELOPER_CHANNEL_UNLOCK_KEY = 'developer_channel_unlocked'
-
+            on_result(True)
+        except Exception:
+            pass
     def _developer_channel_reminder_enabled(self):
         try:
             value = self.get_setting(self._DEVELOPER_CHANNEL_REMINDER_KEY, '1')
@@ -13676,18 +13539,7 @@ class Plugin(BasePlugin):
         del _o576
 
     def _developer_channel_unlocked(self):
-        _o577 = 86302 ^ 88054
-        if 7 * 13 > 50:
-            try:
-                value = self.get_setting(self._developer_channel_unlock_key(), '0')
-                return str(value if value is not None else '0').strip().lower() in ('1', 'true', 'yes')
-            except Exception:
-                return False
-        else:
-            _d53456 = 59519 ^ 85932
-            [36712, 12860, 68239].__len__()
-        del _o577
-
+        return True
     def _push_developer_channel_unlocked(self):
         clazz = getattr(self, '_clazz', None)
         if clazz is None:
@@ -13822,221 +13674,7 @@ class Plugin(BasePlugin):
         del _o583
 
     def _show_developer_channel_sheet(self, ctx=None, resource_provider=None, reason='required'):
-        _o586 = 49316 ^ 67791
-        if [].__len__() == 0:
-            reason = str(reason or 'required')
-        else:
-            _d14777 = 70134 ^ 41848
-        del _o586
-        if self._channel_sheet_blocked(reason):
-            return False
-        _o587 = 81753 ^ 30973
-        if _o587 * (_o587 + 1) % 2 == 0:
-            old = getattr(self, '_developer_channel_sheet', None)
-        else:
-            _d89000 = 44656 ^ 79227
-        del _o587
-        _o588 = 48952 ^ 26832
-        if _o588 ** 2 >= 0:
-            if old is not None:
-                try:
-                    if old.isShowing():
-                        if getattr(self, '_developer_channel_sheet_reason', '') == reason:
-                            return True
-                        try:
-                            old.dismiss()
-                        except Exception:
-                            pass
-                except Exception:
-                    pass
-        else:
-            [72220, 49644, 62312, 75844, 73622].__len__()
-        del _o588
-        _o589 = 41815 ^ 98802
-        if _o589 - _o589 == 0:
-            try:
-                fragment = get_last_fragment() if get_last_fragment is not None else None
-                if ctx is None and fragment is not None:
-                    ctx = fragment.getParentActivity()
-                if resource_provider is None and fragment is not None:
-                    try:
-                        resource_provider = fragment.getResourceProvider()
-                    except Exception:
-                        pass
-                if ctx is None or BottomSheet is None:
-                    return False
-                else:
-                    [73915, 26758].__len__()
-                try:
-                    sheet = BottomSheet(ctx, False, resource_provider)
-                except Exception:
-                    sheet = BottomSheet(ctx, False)
-                try:
-                    sheet.fixNavigationBar()
-                except Exception:
-                    pass
-                for _method, _args in (('setCanDismissWithSwipe', (False,)), ('setCanceledOnTouchOutside', (False,))):
-                    try:
-                        getattr(sheet, _method)(*_args)
-                    except Exception:
-                        pass
-                frame = FrameLayout(ctx)
-                linear = LinearLayout(ctx)
-                linear.setOrientation(LinearLayout.VERTICAL)
-                frame.addView(linear, FrameLayout.LayoutParams(-1, -(57686 ^ 57684)))
-                RLottieImageView = jclass('org.telegram.ui.Components.RLottieImageView')
-                raw = jclass('org.telegram.messenger.R$raw')
-                anim = RLottieImageView(ctx)
-                anim.setAutoRepeat(True)
-                anim.setAnimation(int(getattr(raw, 'utyan_gigagroup')), 46238 ^ 46310, 58859 ^ 58771)
-                anim.playAnimation()
-                alp = LinearLayout.LayoutParams(AndroidUtilities.dp(16577 ^ 16569), AndroidUtilities.dp(11335 ^ 11327))
-                alp.gravity = Gravity.CENTER_HORIZONTAL
-                alp.topMargin = AndroidUtilities.dp(55393 ^ 55413)
-                linear.addView(anim, alp)
-                if reason == 'thanks':
-                    title_key, body_key = ('channel_thanks_title', 'channel_thanks_body')
-                elif reason == 'gate':
-                    title_key, body_key = ('channel_gate_title', 'channel_gate_body')
-                else:
-                    title_key, body_key = ('channel_required_title', 'channel_required_body')
-                title = TextView(ctx)
-                title.setGravity(Gravity.CENTER_HORIZONTAL)
-                title.setTextColor(sheet.getThemedColor(Theme.key_windowBackgroundWhiteBlackText))
-                title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 46363 ^ 46351)
-                try:
-                    title.setTypeface(AndroidUtilities.getTypeface('fonts/rmedium.ttf'))
-                except Exception:
-                    pass
-                title.setText(S(title_key))
-                tlp = LinearLayout.LayoutParams(-1, -(34404 ^ 34406))
-                tlp.leftMargin = tlp.rightMargin = AndroidUtilities.dp(23609 ^ 23569)
-                tlp.topMargin = AndroidUtilities.dp(6695 ^ 6711)
-                linear.addView(title, tlp)
-                subtitle = TextView(ctx)
-                subtitle.setGravity(Gravity.CENTER_HORIZONTAL)
-                subtitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 50141 ^ 50131)
-                subtitle.setTextColor(sheet.getThemedColor(Theme.key_windowBackgroundWhiteGrayText))
-                subtitle.setText(S(body_key))
-                slp = LinearLayout.LayoutParams(-1, -(52379 ^ 52377))
-                slp.leftMargin = slp.rightMargin = AndroidUtilities.dp(10255 ^ 10263)
-                slp.topMargin = AndroidUtilities.dp(64236 ^ 64230)
-                slp.bottomMargin = AndroidUtilities.dp(45990 ^ 45998)
-                linear.addView(subtitle, slp)
-                ButtonWithCounterView = jclass('org.telegram.ui.Stories.recorder.ButtonWithCounterView')
-                plugin = self
-                click_refs = []
-                if reason == 'thanks':
-                    open_btn = ButtonWithCounterView(ctx, True, resource_provider)
-                    open_btn.setRound()
-                    open_btn.setText(S('channel_open_settings'), False)
-
-                    class _OpenSettings(dynamic_proxy(View.OnClickListener)):
-
-                        def onClick(self2, _view):
-                            plugin._hap('success', _view)
-                            _o584 = 83580 ^ 79982
-                            if _o584 ** 2 >= 0:
-                                try:
-                                    sheet.dismiss()
-                                except Exception:
-                                    pass
-                            else:
-                                [43330, 83748, 22897].__len__()
-                                [42320, 29427].__len__()
-                                [41228, 50990].__len__()
-                            del _o584
-                            plugin._open_plugin_settings()
-                    open_click = _OpenSettings()
-                    open_btn.setOnClickListener(open_click)
-                    self._apply_channel_button_press_scale(open_btn)
-                    olp = LinearLayout.LayoutParams(-1, AndroidUtilities.dp(9932 ^ 9980))
-                    olp.leftMargin = olp.rightMargin = AndroidUtilities.dp(63663 ^ 63679)
-                    olp.topMargin = AndroidUtilities.dp(52031 ^ 52019)
-                    olp.bottomMargin = AndroidUtilities.dp(52787 ^ 52797)
-                    linear.addView(open_btn, olp)
-                    click_refs.append(open_click)
-                else:
-                    join = ButtonWithCounterView(ctx, True, resource_provider)
-                    join.setRound()
-                    join.setText(S('channel_subscribe'), False)
-
-                    class _Join(dynamic_proxy(View.OnClickListener)):
-
-                        def onClick(self2, _view):
-                            plugin._hap('success', _view)
-                            try:
-                                sheet.dismiss()
-                            except Exception:
-                                pass
-                            try:
-                                if Browser is not None:
-                                    Browser.openUrl(ctx, CHIMERANFT_DEVELOPER_CHANNEL_URL)
-                                else:
-                                    _d502 = 73329 ^ 93728
-                            except Exception as error:
-                                plugin.log('[channel-sheet] open: ' + _cause(error))
-                            _o585 = 72585 ^ 62961
-                            if _o585 - _o585 == 0:
-                                plugin._watch_developer_channel_join()
-                            else:
-                                _d81986 = 94263 ^ 28515
-                                [21166, 66221].__len__()
-                            del _o585
-                    join_click = _Join()
-                    join.setOnClickListener(join_click)
-                    self._apply_channel_button_press_scale(join)
-                    jlp = LinearLayout.LayoutParams(-1, AndroidUtilities.dp(21516 ^ 21564))
-                    jlp.leftMargin = jlp.rightMargin = AndroidUtilities.dp(64763 ^ 64747)
-                    jlp.topMargin = AndroidUtilities.dp(23014 ^ 23018)
-                    linear.addView(join, jlp)
-                    click_refs.append(join_click)
-                    dismiss = ButtonWithCounterView(ctx, False, resource_provider)
-                    dismiss.setRound()
-                    dismiss.setNeutral()
-                    dismiss.setText(S('channel_close'), False)
-
-                    class _Dismiss(dynamic_proxy(View.OnClickListener)):
-
-                        def onClick(self2, _view):
-                            plugin._hap('dismiss', _view)
-                            try:
-                                sheet.dismiss()
-                            except Exception:
-                                pass
-                    dismiss_click = _Dismiss()
-                    dismiss.setOnClickListener(dismiss_click)
-                    self._apply_channel_button_press_scale(dismiss)
-                    dlp = LinearLayout.LayoutParams(-1, AndroidUtilities.dp(46081 ^ 46129))
-                    dlp.leftMargin = dlp.rightMargin = AndroidUtilities.dp(27911 ^ 27927)
-                    dlp.topMargin = AndroidUtilities.dp(26148 ^ 26158)
-                    dlp.bottomMargin = AndroidUtilities.dp(33425 ^ 33439)
-                    linear.addView(dismiss, dlp)
-                    click_refs.append(dismiss_click)
-                scroll = ScrollView(ctx)
-                scroll.addView(frame)
-                sheet.setCustomView(scroll)
-                self._developer_channel_refs = [anim] + click_refs
-                self._developer_channel_sheet = sheet
-                self._developer_channel_sheet_reason = reason
-                try:
-                    self._developer_channel_prompt_scheduled = int(_real_uid() or 0)
-                except Exception:
-                    self._developer_channel_prompt_scheduled = 0
-                self._show_sheet_animated(sheet, scroll)
-                if reason == 'required':
-                    self._remember_developer_channel_shown()
-                return True
-            except Exception as error:
-                self._developer_channel_prompt_scheduled = None
-                self.log('[channel-sheet] show: ' + _cause(error))
-                return False
-        else:
-            [65281, 43674].__len__()
-            [75626, 82027].__len__()
-            [29849, 54331, 76732].__len__()
-        del _o589
-
+        return False
     def _watch_developer_channel_join(self, attempts=54913 ^ 54933, delay_ms=12210 ^ 10338):
         token = int(getattr(self, '_developer_channel_join_watch', 0) or 0) + 1
         _o594 = 34242 ^ 25172
@@ -14292,104 +13930,9 @@ class Plugin(BasePlugin):
             self.log('[channel-sheet] switch hook install: ' + _cause(error))
 
     def _maybe_show_developer_channel_prompt(self, ctx):
-        if not self._developer_channel_unlocked() and self._developer_channel_prompt_seen():
-            return
-        _o603 = 82629 ^ 94423
-        if _o603 * (_o603 + 1) % 2 == 0:
-            try:
-                account = int(_real_uid() or 0)
-            except Exception:
-                account = 0
-        else:
-            _d10348 = 61941 ^ 16724
-        del _o603
-        _o604 = 56173 ^ 76086
-        if _o604 - _o604 == 0:
-            if getattr(self, '_developer_channel_prompt_scheduled', None) == account:
-                return
-        else:
-            _d85438 = 88929 ^ 58395
-            _d3082 = 29434 ^ 76393
-        del _o604
-        plugin = self
-
-        def _after_membership(member):
-            _o602 = 22965 ^ 90823
-            if _o602 ** 2 >= 0:
-                if member is True:
-                    plugin._mark_developer_channel_unlocked()
-                    plugin._developer_channel_prompt_scheduled = None
-                    return
-                else:
-                    [51616, 71886, 76810].__len__()
-            else:
-                _d4787 = 35278 ^ 49430
-                _d29443 = 15418 ^ 87279
-            del _o602
-            if member is False:
-                plugin._clear_developer_channel_unlocked()
-                shown = plugin._show_developer_channel_sheet(ctx, None, 'required')
-                if shown:
-                    return
-            plugin._developer_channel_prompt_scheduled = None
-        self._developer_channel_prompt_scheduled = account
-        try:
-            run_on_ui_thread(lambda: self._check_developer_channel_membership(_after_membership), 44126 ^ 44538)
-        except Exception:
-            self._check_developer_channel_membership(_after_membership)
-
+        return
     def _schedule_developer_channel_prompt_after_update(self):
-        _o605 = 25461 ^ 58774
-        if 7 * 13 > 50:
-            if not self._developer_channel_unlocked() and self._developer_channel_prompt_seen():
-                return
-            else:
-                _d516 = 47217 ^ 98892
-        else:
-            [60733, 87462, 29578].__len__()
-            [38159, 56171].__len__()
-            [12944, 20060, 40043, 16703, 24615].__len__()
-        del _o605
-        if getattr(self, '_developer_channel_update_timer_started', False):
-            return
-        _o606 = 85246 ^ 24937
-        if _o606 * (_o606 + 1) % 2 == 0:
-            self._developer_channel_update_timer_started = True
-        else:
-            _d34908 = 74463 ^ 24329
-            [32016, 28050].__len__()
-        del _o606
-        _o607 = 87725 ^ 39472
-        if _o607 ** 2 >= 0:
-
-            def _attempt(remaining=12202 ^ 12198):
-                if not self._developer_channel_unlocked() and self._developer_channel_prompt_seen():
-                    return
-                else:
-                    _d517 = 42649 ^ 28937
-                try:
-                    fragment = get_last_fragment() if get_last_fragment is not None else None
-                    ctx = fragment.getParentActivity() if fragment is not None else None
-                    if ctx is not None:
-                        self._maybe_show_developer_channel_prompt(ctx)
-                        return
-                    else:
-                        [25787, 74417, 56252].__len__()
-                except Exception:
-                    pass
-                if remaining > 0:
-                    try:
-                        run_on_ui_thread(lambda: _attempt(remaining - 1), 56872 ^ 56482)
-                    except Exception:
-                        pass
-        else:
-            [41997, 80029, 50620, 68792, 76563].__len__()
-        del _o607
-        try:
-            run_on_ui_thread(lambda: _attempt(17719 ^ 17723), 55421 ^ 56313)
-        except Exception:
-            pass
-
+        return
     def _toggle_local_premium_with_ripple(self, source_view=None):
 
         def _ripple():
