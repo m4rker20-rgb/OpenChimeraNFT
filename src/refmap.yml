@@ -1,0 +1,5 @@
+metainfo: chimeranft/meta.yml
+main: chimeranft/src/loader.py
+assets: chimeranft/res
+strings: chimeranft/locales
+elyxbuilder: chimeranft/.elyxbuilder

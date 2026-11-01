@@ -1,3 +1,0 @@
-.class abstract Lkotlin/sequences/SequencesKt__SequencesKt;
-.super Lkotlin/sequences/SequencesKt__SequencesJVMKt;
-.source "SourceFile"
